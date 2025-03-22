@@ -9,13 +9,14 @@ class Coberturas extends BaseController
     private  $coberturasModel;
     public function __construct()
     {
-        $this ->coberturasModel = new CoberturasModel();
+        $this->coberturasModel = new CoberturasModel();
     }
 
     public function getCoberturas()
     {
-/*         $coberturasModel = new CoberturasModel();
- */        $resultado = $this ->coberturasModel->findAll();
+        /*         $coberturasModel = new CoberturasModel();
+ */
+        $resultado = $this->coberturasModel->findAll();
 
         echo 'get all';
         echo '<pre>';
@@ -25,47 +26,47 @@ class Coberturas extends BaseController
 
     public function getByIdCoberturas($id)
     {
-        /*    $id = 1; */
+        $resultado = $this->coberturasModel->find($id);
 
-/*         $coberturasModel = new CoberturasModel();
- */        $resultado = $this ->coberturasModel->find($id);
-
-        echo 'getbyid';
-        echo '<pre>';
-        print_r($resultado);
-        echo '</pre>';
-        return $resultado;
+        if (!empty($resultado)) {
+            echo 'getbyid';
+            echo '<pre>';
+            print_r($resultado);
+            echo '</pre>';
+            return $resultado;
+        } else {
+            echo 'no se encontro cobertura  ';
+            return null;
+        }
     }
 
-    public function postCobertura(){
+    public function postCobertura()
+    {
 
 
         $data = [
             'nombre_cobertura' => 'iosfa'
         ];
 
-        $this ->coberturasModel->insert($data);
+        $this->coberturasModel->insert($data);
 
         echo 'Post';
         echo '<pre>';
         print_r($data);
         echo '</pre>';
     }
-
-    public function updateCobertura($id){
-
+    public function deleteCobertura($id)
+    {
+       
         $antes = $this->getByIdCoberturas($id);
 
-        $data = [
-            'nombre_cobertura' => 'iosfa modificado'
-        ];
 
-      
-        $this ->coberturasModel->update($id, $data);
+        $this->coberturasModel->delete($id);
+
         $despues = $this->getByIdCoberturas($id);
 
-        
-        echo 'Update';
+        echo '<pre>';
+        echo 'Delete';
         echo '<pre>';
         echo 'antes';
         print_r($antes);
@@ -75,4 +76,27 @@ class Coberturas extends BaseController
         echo '</pre>';
     }
 
+    public function updateCobertura($id)
+    {
+
+        $antes = $this->getByIdCoberturas($id);
+
+        $data = [
+            'nombre_cobertura' => 'iosfa modificado'
+        ];
+
+
+        $this->coberturasModel->update($id, $data);
+        $despues = $this->getByIdCoberturas($id);
+
+
+        echo 'Update';
+        echo '<pre>';
+        echo 'antes';
+        print_r($antes);
+
+        echo 'despues';
+        print_r($despues);
+        echo '</pre>';
+    }
 }
