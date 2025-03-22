@@ -14,3 +14,10 @@ $routes->get('/cobertura/editar/(:num)', 'Coberturas::updateCobertura/$1');
 $routes->get('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
 
 
+$routes->get('/informes', 'Informes::getInformes');
+$routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
+$routes->get('/informe/alta', 'Informes::postInforme');
+$routes->get('/informe/editar/(:num)', 'Informes::updateInforme/$1');
+$routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
+
+
