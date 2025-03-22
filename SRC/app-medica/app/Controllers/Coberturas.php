@@ -34,9 +34,8 @@ class Coberturas extends BaseController
         echo '<pre>';
         print_r($resultado);
         echo '</pre>';
+        return $resultado;
     }
-
-
 
     public function postCobertura(){
 
@@ -52,4 +51,28 @@ class Coberturas extends BaseController
         print_r($data);
         echo '</pre>';
     }
+
+    public function updateCobertura($id){
+
+        $antes = $this->getByIdCoberturas($id);
+
+        $data = [
+            'nombre_cobertura' => 'iosfa modificado'
+        ];
+
+      
+        $this ->coberturasModel->update($id, $data);
+        $despues = $this->getByIdCoberturas($id);
+
+        
+        echo 'Update';
+        echo '<pre>';
+        echo 'antes';
+        print_r($antes);
+
+        echo 'despues';
+        print_r($despues);
+        echo '</pre>';
+    }
+
 }
