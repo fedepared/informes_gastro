@@ -14,8 +14,7 @@ class Coberturas extends BaseController
 
     public function getCoberturas()
     {
-        /*         $coberturasModel = new CoberturasModel();
- */
+
         $resultado = $this->coberturasModel->findAll();
 
         echo 'get all';
