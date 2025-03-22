@@ -7,3 +7,4 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 $routes->get('/coberturas', 'Coberturas::getCoberturas');
+$routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
