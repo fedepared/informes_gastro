@@ -3,6 +3,10 @@
 namespace App\Controllers;
 
 use App\Models\InformesModel;
+use App\Controllers\Coberturas;
+
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class Informes extends BaseController
 {
@@ -14,52 +18,58 @@ class Informes extends BaseController
 
 
 
+
+
+
     public function getInformes()
     {
+        $resultado = $this->InformesModel->getInformesWithCoberturas();
 
-        $resultado = $this->InformesModel->findAll();
-
-        echo 'get all';
-        echo '<pre>';
-        print_r($resultado);
-        echo '</pre>';
+        if (!empty($resultado)) {
+            echo '<pre>';
+            print_r($resultado);
+            echo '</pre>';
+        } else {
+            echo 'No se encontraron informes.';
+        }
     }
 
     public function getByIdInformes($id)
     {
-        $resultado = $this->InformesModel->find($id);
+        $resultado = $this->InformesModel->getInformeByIdWithCobertura($id);
 
         if (!empty($resultado)) {
-            echo 'getbyid';
             echo '<pre>';
             print_r($resultado);
             echo '</pre>';
-            return $resultado;
         } else {
-            echo 'no se encontro cobertura  ';
-            return null;
+            echo 'No se encontró el informe.';
         }
     }
 
     public function postInforme()
     {
+        // Obtener la cobertura
+        $coberturaModel = new Coberturas();
+        $coberturaData = $coberturaModel->getByIdCoberturas(5); // Reemplaza con el ID correcto
 
+        // Extraer el nombre de la cobertura si existe
+        $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
 
+        // Datos para guardar en la base de datos
         $data = [
-            'nombre_paciente' => 'fede',
+            'nombre_paciente' => 'Puto el que lee', // <-- Cambia este valor antes de producción
             'fecha' => '2025-03-22',
             'url_archivo' => 'url',
             'mail_paciente' => 'fede@gmail.com',
-            'id_cobertura' => '5',
-
+            'id_cobertura' => '5', // Solo se guarda el ID
         ];
 
+        // Guardar en la base de datos
         $this->InformesModel->insert($data);
 
-        echo 'Post';
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
+        // Generar y descargar el PDF con el nombre de la cobertura
+        return $this->generatePDF($data, $nombreCobertura);
     }
 
     /*
@@ -94,6 +104,70 @@ class Informes extends BaseController
 }
  
      */
+    private function generatePDF($data, $id)
+    {
+        $dompdf = new Dompdf();
+
+        // Estilos CSS profesionales
+        $css = "
+        <style>
+            body { font-family: Arial, sans-serif; }
+            .container { width: 100%; padding: 20px; border: 1px solid #ccc; }
+            h2 { text-align: center; color: #007BFF; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            table, th, td { border: 1px solid black; }
+            th, td { padding: 10px; text-align: left; }
+            th { background-color: #007BFF; color: white; }
+        </style>";
+
+        // Contenido del PDF
+        $html = "
+        <html>
+        <head>$css</head>
+        <body>
+            <div class='container'>
+                <h2>Informe del Paciente</h2>
+                <table>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td><b>Nombre del Paciente</b></td>
+                        <td>{$data['nombre_paciente']}</td>
+                    </tr>
+                    <tr>
+                        <td><b>Fecha</b></td>
+                        <td>{$data['fecha']}</td>
+                    </tr>
+                    <tr>
+                        <td><b>Correo Electrónico</b></td>
+                        <td>{$data['mail_paciente']}</td>
+                    </tr>
+                    <tr>
+                        <td><b>Cobertura</b></td>
+                        <td>{$id}</td>
+
+                    </tr>
+                </table>
+            </div>
+        </body>
+        </html>";
+
+        // Cargar el HTML en Dompdf
+        $dompdf->loadHtml($html);
+
+        // Configurar el tamaño del papel y la orientación
+        $dompdf->setPaper('A4', 'portrait');
+
+        // Renderizar el PDF
+        $dompdf->render();
+
+        // Descargar el archivo
+        $dompdf->stream("informe_paciente.pdf", ["Attachment" => true]);
+
+        exit();
+    }
 
 
     public function deleteInforme($id)
@@ -110,10 +184,10 @@ class Informes extends BaseController
         echo 'Delete';
         echo '<pre>';
         echo 'antes';
-        print_r($antes);
+        /*    print_r($antes); */
 
         echo 'despues';
-        print_r($despues);
+        /*     print_r($despues); */
         echo '</pre>';
     }
 
@@ -139,10 +213,10 @@ class Informes extends BaseController
         echo 'Update';
         echo '<pre>';
         echo 'antes';
-        print_r($antes);
+        /*      print_r($antes); */
 
         echo 'despues';
-        print_r($despues);
+        /*   print_r($despues); */
         echo '</pre>';
     }
 

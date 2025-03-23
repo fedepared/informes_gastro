@@ -14,6 +14,26 @@ class InformesModel extends Model
     protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura'];
     
 
+    
+    public function getInformesWithCoberturas()
+    {
+        return $this->db->table('informes')
+            ->select('informes.*, coberturas.nombre_cobertura')
+            ->join('coberturas', 'coberturas.id_cobertura = informes.id_cobertura', 'left')
+            ->get()
+            ->getResultArray();
+    }
+
+    public function getInformeByIdWithCobertura($id)
+    {
+        return $this->db->table('informes')
+            ->select('informes.*, coberturas.nombre_cobertura')
+            ->join('coberturas', 'coberturas.id_cobertura = informes.id_cobertura', 'left')
+            ->where('informes.id_informe', $id)
+            ->get()
+            ->getRowArray();
+    }
+
 }
 
 ?>
