@@ -43,11 +43,11 @@ class Usuarios extends BaseController
 
     public function postUsuarios()
     {
-
+        $claveHash = password_hash(1234, PASSWORD_DEFAULT);
 
         $data = [
             'nombre_usuario' => 'admin2',
-            'pass' => '1234',
+            'pass' => $claveHash,
             'mail' => 'admin2@gmail.com',
             
        
