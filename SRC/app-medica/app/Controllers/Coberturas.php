@@ -6,7 +6,8 @@ use App\Models\CoberturasModel;
 
 class Coberturas extends BaseController
 {
-    private  $coberturasModel;
+    private $coberturasModel;
+
     public function __construct()
     {
         $this->coberturasModel = new CoberturasModel();
@@ -14,88 +15,121 @@ class Coberturas extends BaseController
 
     public function getCoberturas()
     {
-
-        $resultado = $this->coberturasModel->findAll();
-
-        echo 'get all';
-        echo '<pre>';
-        print_r($resultado);
-        echo '</pre>';
+        try {
+            $resultado = $this->coberturasModel->findAll();
+            return [
+                'status' => 'success',
+                'data' => $resultado
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     public function getByIdCoberturas($id)
     {
-        $resultado = $this->coberturasModel->find($id);
+        try {
+            $resultado = $this->coberturasModel->find($id);
 
-        if (!empty($resultado)) {
-            echo 'getbyid';
-            echo '<pre>';
-            print_r($resultado);
-            echo '</pre>';
-            return $resultado;
-        } else {
-            echo 'no se encontro cobertura  ';
-            return null;
+            if (!empty($resultado)) {
+                return [
+                    'status' => 'success',
+                    'data' => $resultado
+                ];
+            } else {
+                return [
+                    'status' => 'error',
+                    'message' => 'No se encontró la cobertura con el ID proporcionado.'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
         }
     }
 
     public function postCobertura()
     {
+        try {
+            $data = [
+                'nombre_cobertura' => 'iosfa'
+            ];
 
+            $this->coberturasModel->insert($data);
 
-        $data = [
-            'nombre_cobertura' => 'iosfa'
-        ];
-
-        $this->coberturasModel->insert($data);
-
-        echo 'Post';
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
+            return [
+                'status' => 'success',
+                'message' => 'Cobertura creada exitosamente.',
+                'data' => $data
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
+
     public function deleteCobertura($id)
     {
-       
-        $antes = $this->getByIdCoberturas($id);
+        try {
+            $antes = $this->getByIdCoberturas($id);
 
+            if ($antes['status'] === 'error') {
+                return $antes; // Retorna el error si no se encuentra la cobertura
+            }
 
-        $this->coberturasModel->delete($id);
+            $this->coberturasModel->delete($id);
 
-        $despues = $this->getByIdCoberturas($id);
+            $despues = $this->getByIdCoberturas($id);
 
-        echo '<pre>';
-        echo 'Delete';
-        echo '<pre>';
-        echo 'antes';
-        print_r($antes);
-
-        echo 'despues';
-        print_r($despues);
-        echo '</pre>';
+            return [
+                'status' => 'success',
+                'message' => 'Cobertura eliminada exitosamente.',
+                'antes' => $antes['data'],
+                'despues' => $despues['data']
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     public function updateCobertura($id)
     {
+        try {
+            $antes = $this->getByIdCoberturas($id);
 
-        $antes = $this->getByIdCoberturas($id);
+            if ($antes['status'] === 'error') {
+                return $antes; // Retorna el error si no se encuentra la cobertura
+            }
 
-        $data = [
-            'nombre_cobertura' => 'iosfa modificado'
-        ];
+            $data = [
+                'nombre_cobertura' => 'iosfa modificado'
+            ];
 
+            $this->coberturasModel->update($id, $data);
 
-        $this->coberturasModel->update($id, $data);
-        $despues = $this->getByIdCoberturas($id);
+            $despues = $this->getByIdCoberturas($id);
 
-
-        echo 'Update';
-        echo '<pre>';
-        echo 'antes';
-        print_r($antes);
-
-        echo 'despues';
-        print_r($despues);
-        echo '</pre>';
+            return [
+                'status' => 'success',
+                'message' => 'Cobertura actualizada exitosamente.',
+                'antes' => $antes['data'],
+                'despues' => $despues['data']
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 }
