@@ -8,6 +8,8 @@ use App\Controllers\Coberturas;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 class Informes extends BaseController
 {
     private  $InformesModel;
@@ -47,30 +49,95 @@ class Informes extends BaseController
         }
     }
 
+    
     public function postInforme()
     {
-        // Obtener la cobertura
+        // Obtener la cobertura desde el modelo
         $coberturaModel = new Coberturas();
         $coberturaData = $coberturaModel->getByIdCoberturas(5); // Reemplaza con el ID correcto
-
-        // Extraer el nombre de la cobertura si existe
-        $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
-
+    
+        // Verifica si el resultado es válido y accede correctamente a la propiedad
+        if (is_array($coberturaData)) {
+            $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
+        } elseif (is_object($coberturaData)) {
+            $nombreCobertura = $coberturaData->nombre_cobertura ?? 'No especificada';
+        } else {
+            $nombreCobertura = 'No especificada';
+        }
+    
         // Datos para guardar en la base de datos
         $data = [
-            'nombre_paciente' => 'Puto el que lee', // <-- Cambia este valor antes de producción
+            'nombre_paciente' => 'Paciente de prueba',
             'fecha' => '2025-03-22',
             'url_archivo' => 'url',
-            'mail_paciente' => 'fede@gmail.com',
-            'id_cobertura' => '5', // Solo se guarda el ID
+            'mail_paciente' => 'agustin.moya.4219@gmail.com',
+            'id_cobertura' => 5, // Solo se guarda el ID como número
         ];
-
+    
         // Guardar en la base de datos
         $this->InformesModel->insert($data);
-
-        // Generar y descargar el PDF con el nombre de la cobertura
-        return $this->generatePDF($data, $nombreCobertura);
+    
+        // Generar el PDF y obtener la ruta del archivo
+        $pdfPath = $this->generatePDF($data, $nombreCobertura);
+    
+        // Enviar el correo con el PDF adjunto y capturar el resultado
+        $resultadoCorreo = $this->sendEmailWithPDF($data['mail_paciente'], $pdfPath);
+        print_r($resultadoCorreo);
+        // Retornar el estado del informe y el envío del correo
+        return [
+            'mensaje' => 'Informe creado',
+            'envio_correo' => $resultadoCorreo
+        ];
     }
+    
+    
+
+
+
+    function sendEmailWithPDF($recipientEmail, $pdfPath)
+    {
+        $mail = new PHPMailer(true);
+    
+        try {
+            // Habilitar la salida de depuración detallada
+            $mail->SMTPDebug = 2; // 0 = desactivar depuración, 2 = mensajes detallados
+            $mail->Debugoutput = 'html'; // Para mostrar los mensajes en HTML
+    
+            // Configuración del servidor SMTP de Outlook
+            $mail->isSMTP();
+            $mail->Host = 'smtp.office365.com'; // Servidor SMTP de Outlook
+            $mail->SMTPAuth = true;
+            $mail->Username = 'agusfull22@hotmail.com'; // Tu correo de Outlook/Hotmail
+            $mail->Password = 'Afma0018'; // ⚠ ¡Nunca compartas tu contraseña en público!
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Seguridad TLS
+            $mail->Port = 587; // Puerto SMTP de Outlook
+    
+            // Configuración del correo
+            $mail->setFrom('agusfull22@hotmail.com', 'Sistema de Informes'); // Remitente
+            $mail->addAddress($recipientEmail); // Destinatario
+            $mail->Subject = 'Informe generado';
+            $mail->Body = 'Adjunto encontrarás el informe en formato PDF.';
+            $mail->isHTML(true);
+    
+            // Adjuntar el PDF
+            $mail->addAttachment($pdfPath);
+            
+            
+            // Enviar el correo
+            if ($mail->send()) {
+                return $res =   "Correo enviado correctamente";
+            } else {
+                return  $res ="Error en el envío: " . $mail->ErrorInfo;
+            }
+        } catch (Exception $e) {
+            return $res = "Excepción al enviar el correo: {$mail->ErrorInfo}";
+        }
+
+        print_r($res);
+    }
+    
+
+    
 
     /*
     public function postInforme()
