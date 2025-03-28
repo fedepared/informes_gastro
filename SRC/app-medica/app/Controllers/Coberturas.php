@@ -16,9 +16,11 @@ class Coberturas extends BaseController
     public function getCoberturas()
     {
         try {
-            
-            $data['coberturas'] =  $this->coberturasModel->findAll();
-            return view('coberturas', $data);
+
+            // $data['coberturas'] =  $this->coberturasModel->findAll();
+            // return view('coberturas', $data);
+            $coberturas = $this->coberturasModel->findAll(); // Obtiene todas las coberturas
+            return $this->response->setJSON($coberturas);
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -33,35 +35,35 @@ class Coberturas extends BaseController
             $resultado = $this->coberturasModel->find($id);
 
             if (!empty($resultado)) {
-                return [
+                return $this->response->setJSON([
                     'status' => 'success',
                     'data' => $resultado
-                ];
+                ]);
             } else {
-                return [
+                return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'No se encontró la cobertura con el ID proporcionado.'
-                ];
+                ]);
             }
         } catch (\Exception $e) {
-            return [
+            return $this->response->setJSON([
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ];
+            ]);
         }
     }
+
 
     public function postCobertura()
     {
         try {
             $data = [
-                'nombre_cobertura'=> $this->request->getPost('nombre_cobertura')
+                'nombre_cobertura' => $this->request->getPost('nombre_cobertura')
             ];
 
             $this->coberturasModel->insert($data);
 
-            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura creada exitosamente.');
-
+            return redirect()->to(site_url('coberturas_view'))->with('success', 'Cobertura creada exitosamente.');
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -73,25 +75,33 @@ class Coberturas extends BaseController
     public function deleteCobertura($id)
     {
         try {
-            echo "orueba";
+            log_message('debug', 'ID recibido en deleteCobertura: ' . print_r($id, true));
+
+            // Verificar si la cobertura existe antes de eliminar
             $antes = $this->getByIdCoberturas($id);
 
             if ($antes['status'] === 'error') {
-                return $antes; // Retorna el error si no se encuentra la cobertura
+                return $this->response->setJSON($antes);
             }
 
-            $this->coberturasModel->delete($id);
+            // Eliminar la cobertura
+            $resultado = $this->coberturasModel->delete($id);
 
-            // $despues = $this->getByIdCoberturas($id);
+            log_message('debug', 'Resultado de la eliminación: ' . print_r($resultado, true));
 
-            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura eliminada exitosamente.');
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Cobertura eliminada exitosamente.'
+            ]);
         } catch (\Exception $e) {
-            return [
+            return $this->response->setJSON([
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ];
+            ]);
         }
     }
+
+
 
     public function updateCobertura($id)
     {
@@ -101,16 +111,16 @@ class Coberturas extends BaseController
             if (!$antes) {
                 return redirect()->back()->with('error', 'Cobertura no encontrada.');
             }
-    
+
             // Recibe los datos del formulario
             $data = [
                 'nombre_cobertura' => $this->request->getPost('nombre_cobertura')
             ];
-    
+
             // Actualiza la cobertura
             $this->coberturasModel->update($id, $data);
-    
-            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura modificada exitosamente.');
+
+            return redirect()->to(site_url('coberturas_view'))->with('success', 'Cobertura modificada exitosamente.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }

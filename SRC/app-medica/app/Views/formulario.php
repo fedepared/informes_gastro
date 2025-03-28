@@ -99,7 +99,7 @@
 
 <div class="formulario">
     <h2>Carga de Informe</h2>
-    <form class="form" enctype="multipart/form-data">
+    <form id="formInforme" class="form"  action="<?= site_url('/informe/alta'); ?>" method="POST" enctype="multipart/form-data">
         <div class="datos1">
             <div>
                 <label>Fecha</label>
@@ -141,7 +141,9 @@
         <div class="datos1">
             <div>
                 <label>Tipo de cobertura</label>
-                <input type="text" name="cobertura">
+                <select id="cobertura" name="cobertura">
+                    <option value="">Cargando...</option>
+                </select>
             </div>
             <div>
                 <label>Número de afiliado</label>
@@ -236,10 +238,16 @@
         <label>Subir fotos</label>
         <input type="file" name="foto[]" accept="image/*" multiple>
 
-        <button type="button" id="btnEnviar">Enviar</button>
+        <button type="submit" >Enviar</button>
     </form>
 </div>
 <script>
+
+
+
+
+
+
     document.getElementById('fecha_nacimiento').addEventListener('change', function() {
         var fechaNacimiento = new Date(this.value);
         var hoy = new Date();
@@ -261,7 +269,44 @@
             vedaInputs.style.display = 'none';
         }
     });
+// Función para cargar las coberturas 
+function cargarCoberturas() {
+        // Realiza la solicitud AJAX
+        fetch('<?= site_url('coberturas'); ?>')
+            .then(response => response.json())
+            .then(data => {
+                // Verifica los datos que recibe
+                // Una vez obtenidos los datos, llena el select
+                const selectCobertura = document.getElementById('cobertura');
+                selectCobertura.innerHTML = ''; // Limpia el select
 
+                // Agrega una opción por defecto
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Seleccione una cobertura';
+                selectCobertura.appendChild(defaultOption);
+
+                // Agrega las opciones de coberturas al select
+                if (Array.isArray(data)) {
+                    data.forEach(cobertura => {
+                        const option = document.createElement('option');
+                        option.value = cobertura.id_cobertura; // El valor de la opción es el ID de la cobertura
+                        option.textContent = cobertura.nombre_cobertura; // El texto es el nombre de la cobertura
+                        selectCobertura.appendChild(option);
+                    });
+                } else {
+                    console.error("La respuesta no es un array:", data);
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar las coberturas:', error);
+                const selectCobertura = document.getElementById('cobertura');
+                selectCobertura.innerHTML = '<option value="">Error al cargar coberturas</option>';
+            });
+    }
+
+    // Llama a la función para cargar las coberturas cuando la página esté lista
+    window.addEventListener('DOMContentLoaded', cargarCoberturas);
  
 </script>
 </body>

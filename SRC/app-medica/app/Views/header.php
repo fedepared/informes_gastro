@@ -49,7 +49,7 @@
                 <ul class="ul-menu">
                     <li><a  class="menu" href="formulario">Carga de Informes</a></li>
                     <li ><a class="menu" href="reportes">Reportes</a></li>
-                    <li ><a class="menu" href="coberturas">Coberturas</a></li>
+                    <li ><a class="menu" href="coberturas_view">Coberturas</a></li>
                     <li ><a class="menu" href="login">Salir</a></li>
                 </ul>
             </nav>
