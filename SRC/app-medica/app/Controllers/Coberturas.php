@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\CoberturasModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class Coberturas extends BaseController
 {
@@ -76,31 +77,51 @@ class Coberturas extends BaseController
     {
         try {
             log_message('debug', 'ID recibido en deleteCobertura: ' . print_r($id, true));
-
-            // Verificar si la cobertura existe antes de eliminar
-            $antes = $this->getByIdCoberturas($id);
-
-            if ($antes['status'] === 'error') {
-                return $this->response->setJSON($antes);
+    
+            // Validar que el ID sea válido
+            if (empty($id) || !is_numeric($id)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'ID inválido proporcionado.'
+                ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
             }
-
-            // Eliminar la cobertura
+    
+            // Verificar si la cobertura existe antes de eliminar
+            $cobertura = $this->coberturasModel->find($id);
+    
+            if (!$cobertura) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Cobertura no encontrada.'
+                ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+            }
+    
+            // Intentar eliminar la cobertura
             $resultado = $this->coberturasModel->delete($id);
-
+    
             log_message('debug', 'Resultado de la eliminación: ' . print_r($resultado, true));
-
-            return $this->response->setJSON([
-                'status' => 'success',
-                'message' => 'Cobertura eliminada exitosamente.'
-            ]);
+    
+            // Verificar si la eliminación fue exitosa
+            if ($resultado) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Cobertura eliminada exitosamente.'
+                ])->setStatusCode(ResponseInterface::HTTP_OK);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'No se pudo eliminar la cobertura.'
+                ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+            }
         } catch (\Exception $e) {
+            // Capturar cualquier error inesperado y devolverlo
+            log_message('error', 'Error al intentar eliminar cobertura: ' . $e->getMessage());
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => $e->getMessage()
-            ]);
+                'message' => 'Hubo un error al procesar la solicitud: ' . $e->getMessage()
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-
 
 
     public function updateCobertura($id)

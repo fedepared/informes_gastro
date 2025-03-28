@@ -31,7 +31,8 @@ $routes->get('/coberturas', 'Coberturas::getCoberturas');
 $routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
 $routes->post('/cobertura/alta', 'Coberturas::postCobertura'); // Cambiado a POST
 $routes->put('/cobertura/editar/(:num)', 'Coberturas::updateCobertura/$1'); // Cambiado a PUT
-$routes->post('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
+$routes->delete('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
+
 
 
 $routes->post('/login', 'Usuarios::login');
