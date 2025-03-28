@@ -41,106 +41,106 @@ class Informes extends BaseController
      * Crea un nuevo informe, genera un PDF y lo envía por correo.
      */
 
-     public function postInforme()
-     {
-         try {
-             log_message('info', 'Iniciando postInforme');
-     
-             // Obtener datos del request
-             $nombrePaciente = trim($this->request->getPost('nombre_paciente')); // Eliminar espacios extra
-             $fecha = $this->request->getPost('fecha');
-             $mailPaciente = $this->request->getPost('mail_paciente');
-             $idCobertura = $this->request->getPost('id_cobertura');
-     
-             // Validar datos requeridos
-             if (empty($nombrePaciente) || empty($fecha) || empty($mailPaciente) || empty($idCobertura)) {
-                 return $this->response->setJSON([
-                     'status' => 'error',
-                     'message' => 'Faltan datos requeridos: nombre_paciente, fecha, mail_paciente, id_cobertura'
-                 ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
-             }
-     
-             // Sanitizar el nombre del paciente para usarlo como nombre de carpeta
-             $nombreCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
-     
-             // Directorio donde se guardarán las imágenes del paciente
-             $uploadPath = FCPATH . 'uploads/' . $nombreCarpeta . '/';
-     
-             // Si la carpeta no existe, crearla
-             if (!is_dir($uploadPath)) {
-                 mkdir($uploadPath, 0777, true);
-             }
-     
-             // Obtener archivos (múltiples)
-             $archivos = $this->request->getFileMultiple('archivo');
-     
-             if (empty($archivos)) {
-                 return $this->response->setJSON([
-                     'status' => 'error',
-                     'message' => 'No se enviaron archivos.'
-                 ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
-             }
-     
-             log_message('info', 'Cantidad de archivos recibidos: ' . count($archivos));
-     
-             // Array para almacenar las URLs de los archivos subidos
-             $archivosSubidos = [];
-     
-             foreach ($archivos as $archivo) {
-                 if ($archivo->isValid() && !$archivo->hasMoved()) {
-                     // Crear nombre de archivo con el formato: nombrePaciente_fecha_originalNombre
-                     $nuevoNombre = $nombreCarpeta . '_' . date('Ymd', strtotime($fecha)) . '_' . $archivo->getName();
-                     $archivo->move($uploadPath, $nuevoNombre);
-                     $archivosSubidos[] = base_url('uploads/' . $nombreCarpeta . '/' . $nuevoNombre);
-                     log_message('info', 'Archivo subido: ' . base_url('uploads/' . $nombreCarpeta . '/' . $nuevoNombre));
-                 } else {
-                     log_message('error', 'Error al subir archivo: ' . $archivo->getErrorString());
-                 }
-             }
-     
-             // Obtener el nombre de la cobertura
-             $coberturaModel = new \App\Models\CoberturasModel();
-             $coberturaData = $coberturaModel->find($idCobertura);
-     
-             if (!$coberturaData) {
-                 return $this->response->setJSON([
-                     'status' => 'error',
-                     'message' => 'Cobertura no encontrada.'
-                 ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
-             }
-     
-             $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
-     
-             // Datos para insertar en la BD
-             $data = [
-                 'nombre_paciente' => $nombrePaciente,
-                 'fecha' => $fecha,
-                 'url_archivo' => implode(',', $archivosSubidos), // Guardar las URLs separadas por coma
-                 'mail_paciente' => $mailPaciente,
-                 'id_cobertura' => $idCobertura,
-             ];
-     
-             // Insertar en la BD
-             $this->InformesModel->insert($data);
-     
-             // Generar PDF
-             $pdfPath = $this->generatePDF($data, $nombreCobertura);
-     
-             return $this->response->setJSON([
-                 'status' => 'success',
-                 'message' => 'Informe creado correctamente.',
-                 'archivos' => $archivosSubidos,
-             ]);
-         } catch (\Exception $e) {
-             log_message('error', 'Error en postInforme: ' . $e->getMessage());
-     
-             return $this->response->setJSON([
-                 'status' => 'error',
-                 'message' => 'Hubo un error al procesar la solicitud: ' . $e->getMessage(),
-             ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
-         }
-     }
-     
+    public function postInforme()
+    {
+        try {
+            log_message('info', 'Iniciando postInforme');
+
+            // Obtener datos del request
+            $nombrePaciente = trim($this->request->getPost('nombre_paciente')); // Eliminar espacios extra
+            $fecha = $this->request->getPost('fecha');
+            $mailPaciente = $this->request->getPost('mail_paciente');
+            $idCobertura = $this->request->getPost('id_cobertura');
+
+            // Validar datos requeridos
+            if (empty($nombrePaciente) || empty($fecha) || empty($mailPaciente) || empty($idCobertura)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Faltan datos requeridos: nombre_paciente, fecha, mail_paciente, id_cobertura'
+                ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+            }
+
+            // Sanitizar el nombre del paciente para usarlo como nombre de carpeta
+            $nombreCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
+
+            // Directorio donde se guardarán las imágenes del paciente
+            $uploadPath = FCPATH . 'uploads/' . $nombreCarpeta . '/';
+
+            // Si la carpeta no existe, crearla
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            // Obtener archivos (múltiples)
+            $archivos = $this->request->getFileMultiple('archivo');
+
+            if (empty($archivos)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'No se enviaron archivos.'
+                ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+            }
+
+            log_message('info', 'Cantidad de archivos recibidos: ' . count($archivos));
+
+            // Array para almacenar las URLs de los archivos subidos
+            $archivosSubidos = [];
+
+            foreach ($archivos as $archivo) {
+                if ($archivo->isValid() && !$archivo->hasMoved()) {
+                    // Crear nombre de archivo con el formato: nombrePaciente_fecha_originalNombre
+                    $nuevoNombre = $nombreCarpeta . '_' . date('Ymd', strtotime($fecha)) . '_' . $archivo->getName();
+                    $archivo->move($uploadPath, $nuevoNombre);
+                    $archivosSubidos[] = base_url('uploads/' . $nombreCarpeta . '/' . $nuevoNombre);
+                    log_message('info', 'Archivo subido: ' . base_url('uploads/' . $nombreCarpeta . '/' . $nuevoNombre));
+                } else {
+                    log_message('error', 'Error al subir archivo: ' . $archivo->getErrorString());
+                }
+            }
+
+            // Obtener el nombre de la cobertura
+            $coberturaModel = new \App\Models\CoberturasModel();
+            $coberturaData = $coberturaModel->find($idCobertura);
+
+            if (!$coberturaData) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Cobertura no encontrada.'
+                ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+            }
+
+            $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
+
+            // Datos para insertar en la BD
+            $data = [
+                'nombre_paciente' => $nombrePaciente,
+                'fecha' => $fecha,
+                'url_archivo' => implode(',', $archivosSubidos), // Guardar las URLs separadas por coma
+                'mail_paciente' => $mailPaciente,
+                'id_cobertura' => $idCobertura,
+            ];
+
+            // Insertar en la BD
+            $this->InformesModel->insert($data);
+
+            // Generar PDF
+            $pdfPath = $this->generatePDF($data, $nombreCobertura);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Informe creado correctamente.',
+                'archivos' => $archivosSubidos,
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error en postInforme: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Hubo un error al procesar la solicitud: ' . $e->getMessage(),
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 
     /**
@@ -172,64 +172,62 @@ class Informes extends BaseController
     }
 
     private function generatePDF($data, $cobertura)
-{
-    $dompdf = new Dompdf();
-
-    $html = "
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; }
-            .container { width: 100%; padding: 20px; border: 1px solid #ccc; }
-            h2 { text-align: center; color: #007BFF; }
-            ul { list-style-type: none; padding: 0; }
-            li { padding: 10px; border-bottom: 1px solid #ccc; }
-            strong { color: #007BFF; }
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <h2>Informe del Paciente</h2>
-            <ul>
-                <li><strong>Nombre del Paciente:</strong> {$data['nombre_paciente']}</li>
-                <li><strong>Fecha:</strong> {$data['fecha']}</li>
-                <li><strong>Correo Electrónico:</strong> {$data['mail_paciente']}</li>
-                <li><strong>Cobertura:</strong> {$cobertura}</li>
-            </ul>
-        </div>
-    </body>
-    </html>";
-
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-
-    // 🔹 Crear nombre seguro para la carpeta y archivo
-    $nombrePaciente = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'])); 
-    $coberturaNombre = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($cobertura));
-    $fecha = str_replace('-', '_', $data['fecha']);
-    $fileName = "{$nombrePaciente}_{$coberturaNombre}_{$fecha}.pdf";
-
-    // 🔹 Ruta de la carpeta del paciente
-    $folderPath = __DIR__ . "/../../public/pdfs/{$nombrePaciente}/";
-
-    // 🔹 Crear la carpeta si no existe
-    if (!is_dir($folderPath)) {
-        mkdir($folderPath, 0777, true);
+    {
+        $dompdf = new Dompdf();
+    
+        $html = "
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; }
+                .container { width: 100%; padding: 20px; }
+                h2 { text-align: center; }
+                ul { list-style-type: none; padding: 0; }
+                li { padding: 5px 0; }
+                .fecha { font-weight: bold; font-size: 18px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <h2>Informe del Paciente</h2>
+                <ul>
+                    <li><strong>Nombre del Paciente:</strong> {$data['nombre_paciente']}</li>
+                    <li class='fecha'><strong>Fecha:</strong> {$data['fecha']}</li>
+                    <li><strong>Correo Electrónico:</strong> {$data['mail_paciente']}</li>
+                    <li><strong>Cobertura:</strong> {$cobertura}</li>
+                </ul>
+            </div>
+        </body>
+        </html>";
+    
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+    
+        // 🔹 Crear nombre seguro para la carpeta y archivo
+        $nombrePaciente = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente']));
+        $coberturaNombre = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($cobertura));
+        $fecha = str_replace('-', '_', $data['fecha']);
+        $timestamp = time(); // Genera un número único basado en la hora actual
+        $fileName = "{$nombrePaciente}_{$coberturaNombre}_{$fecha}_{$timestamp}.pdf";
+    
+        // 🔹 Ruta de la carpeta del paciente
+        $folderPath = __DIR__ . "/../../public/pdfs/{$nombrePaciente}/";
+    
+        // 🔹 Crear la carpeta si no existe
+        if (!is_dir($folderPath)) {
+            mkdir($folderPath, 0777, true);
+        }
+    
+        // 🔹 Ruta final del archivo
+        $filePath = $folderPath . $fileName;
+    
+        // 🔹 Guardar el PDF sin sobrescribir los anteriores
+        file_put_contents($filePath, $dompdf->output());
+    
+        return $filePath; // Retorna la ruta del archivo
     }
-
-    // 🔹 Ruta final del archivo
-    $filePath = $folderPath . $fileName;
-
-    // 🔹 Guardar el PDF
-    file_put_contents($filePath, $dompdf->output());
-
-    return $filePath; // Retorna la ruta del archivo
-}
-
-
-
-
+    
 
 
 
