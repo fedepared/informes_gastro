@@ -16,11 +16,9 @@ class Coberturas extends BaseController
     public function getCoberturas()
     {
         try {
-            $resultado = $this->coberturasModel->findAll();
-            return [
-                'status' => 'success',
-                'data' => $resultado
-            ];
+            
+            $data['coberturas'] =  $this->coberturasModel->findAll();
+            return view('coberturas', $data);
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -57,16 +55,13 @@ class Coberturas extends BaseController
     {
         try {
             $data = [
-                'nombre_cobertura' => 'iosfa'
+                'nombre_cobertura'=> $this->request->getPost('nombre_cobertura')
             ];
 
             $this->coberturasModel->insert($data);
 
-            return [
-                'status' => 'success',
-                'message' => 'Cobertura creada exitosamente.',
-                'data' => $data
-            ];
+            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura creada exitosamente.');
+
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -78,6 +73,7 @@ class Coberturas extends BaseController
     public function deleteCobertura($id)
     {
         try {
+            echo "orueba";
             $antes = $this->getByIdCoberturas($id);
 
             if ($antes['status'] === 'error') {
@@ -86,14 +82,9 @@ class Coberturas extends BaseController
 
             $this->coberturasModel->delete($id);
 
-            $despues = $this->getByIdCoberturas($id);
+            // $despues = $this->getByIdCoberturas($id);
 
-            return [
-                'status' => 'success',
-                'message' => 'Cobertura eliminada exitosamente.',
-                'antes' => $antes['data'],
-                'despues' => $despues['data']
-            ];
+            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura eliminada exitosamente.');
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -105,31 +96,23 @@ class Coberturas extends BaseController
     public function updateCobertura($id)
     {
         try {
-            $antes = $this->getByIdCoberturas($id);
-
-            if ($antes['status'] === 'error') {
-                return $antes; // Retorna el error si no se encuentra la cobertura
+            // Verifica si la cobertura existe
+            $antes = $this->coberturasModel->find($id);
+            if (!$antes) {
+                return redirect()->back()->with('error', 'Cobertura no encontrada.');
             }
-
+    
+            // Recibe los datos del formulario
             $data = [
-                'nombre_cobertura' => 'iosfa modificado'
+                'nombre_cobertura' => $this->request->getPost('nombre_cobertura')
             ];
-
+    
+            // Actualiza la cobertura
             $this->coberturasModel->update($id, $data);
-
-            $despues = $this->getByIdCoberturas($id);
-
-            return [
-                'status' => 'success',
-                'message' => 'Cobertura actualizada exitosamente.',
-                'antes' => $antes['data'],
-                'despues' => $despues['data']
-            ];
+    
+            return redirect()->to(site_url('coberturas'))->with('success', 'Cobertura modificada exitosamente.');
         } catch (\Exception $e) {
-            return [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ];
+            return redirect()->back()->with('error', $e->getMessage());
         }
     }
 }
