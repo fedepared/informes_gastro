@@ -15,6 +15,7 @@ CREATE TABLE `informes` (
   `fecha` date NOT NULL,
   `url_archivo` varchar(250) NOT NULL,
   `mail_paciente` varchar(100) NOT NULL,
+  `tipo_informe` varchar(5) NOT NULL,
   `id_cobertura` int DEFAULT NULL,
   PRIMARY KEY (`id_informe`),
   KEY `informe_cobertura_idx` (`id_cobertura`),
