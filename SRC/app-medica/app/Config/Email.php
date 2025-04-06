@@ -6,8 +6,8 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = '';
-    public string $fromName   = '';
+    public string $fromEmail  = 'agusfull22@hotmail.com'; // Tu correo de Hotmail
+    public string $fromName   = 'Tu Nombre o Empresa'; // Nombre que verá el receptor
     public string $recipients = '';
 
     /**
@@ -18,37 +18,32 @@ class Email extends BaseConfig
     /**
      * The mail sending protocol: mail, sendmail, smtp
      */
-    public string $protocol = 'mail';
-
-    /**
-     * The server path to Sendmail.
-     */
-    public string $mailPath = '/usr/sbin/sendmail';
+    public string $protocol = 'smtp';
 
     /**
      * SMTP Server Hostname
      */
-    public string $SMTPHost = '';
+    public string $SMTPHost = 'smtp.office365.com'; // Servidor SMTP de Hotmail
 
     /**
      * SMTP Username
      */
-    public string $SMTPUser = '';
+    public string $SMTPUser = 'agusfull22@hotmail.com'; // Tu correo de Hotmail
 
     /**
-     * SMTP Password
+     * SMTP Password - Usa contraseña de aplicación aquí
      */
-    public string $SMTPPass = '';
+    public string $SMTPPass = 'fkthqfultsfbxlbr'; // Contraseña de aplicación
 
     /**
      * SMTP Port
      */
-    public int $SMTPPort = 25;
+    public int $SMTPPort = 587; // Puerto SMTP para Outlook/Hotmail
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 60;
 
     /**
      * Enable persistent SMTP connections
@@ -57,10 +52,6 @@ class Email extends BaseConfig
 
     /**
      * SMTP Encryption.
-     *
-     * @var string '', 'tls' or 'ssl'. 'tls' will issue a STARTTLS command
-     *             to the server. 'ssl' means implicit SSL. Connection on port
-     *             465 should set this to ''.
      */
     public string $SMTPCrypto = 'tls';
 
@@ -70,14 +61,9 @@ class Email extends BaseConfig
     public bool $wordWrap = true;
 
     /**
-     * Character count to wrap at
-     */
-    public int $wrapChars = 76;
-
-    /**
      * Type of mail, either 'text' or 'html'
      */
-    public string $mailType = 'text';
+    public string $mailType = 'html'; // Para poder enviar imágenes y PDF
 
     /**
      * Character set (utf-8, iso-8859-1, etc.)
@@ -85,34 +71,10 @@ class Email extends BaseConfig
     public string $charset = 'UTF-8';
 
     /**
-     * Whether to validate the email address
-     */
-    public bool $validate = false;
-
-    /**
-     * Email Priority. 1 = highest. 5 = lowest. 3 = normal
-     */
-    public int $priority = 3;
-
-    /**
-     * Newline character. (Use “\r\n” to comply with RFC 822)
+     * Newline character
      */
     public string $CRLF = "\r\n";
-
-    /**
-     * Newline character. (Use “\r\n” to comply with RFC 822)
-     */
     public string $newline = "\r\n";
-
-    /**
-     * Enable BCC Batch Mode.
-     */
-    public bool $BCCBatchMode = false;
-
-    /**
-     * Number of emails in each BCC batch
-     */
-    public int $BCCBatchSize = 200;
 
     /**
      * Enable notify message from server

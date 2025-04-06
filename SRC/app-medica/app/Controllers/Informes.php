@@ -174,7 +174,7 @@ class Informes extends BaseController
     private function generatePDF($data, $cobertura)
     {
         $dompdf = new Dompdf();
-    
+
         $html = "
         <html>
         <head>
@@ -199,36 +199,65 @@ class Informes extends BaseController
             </div>
         </body>
         </html>";
-    
+
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-    
+
         // 🔹 Crear nombre seguro para la carpeta y archivo
         $nombrePaciente = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente']));
         $coberturaNombre = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($cobertura));
         $fecha = str_replace('-', '_', $data['fecha']);
         $timestamp = time(); // Genera un número único basado en la hora actual
         $fileName = "{$nombrePaciente}_{$coberturaNombre}_{$fecha}_{$timestamp}.pdf";
-    
+
         // 🔹 Ruta de la carpeta del paciente
         $folderPath = __DIR__ . "/../../public/pdfs/{$nombrePaciente}/";
-    
+
         // 🔹 Crear la carpeta si no existe
         if (!is_dir($folderPath)) {
             mkdir($folderPath, 0777, true);
         }
-    
+
         // 🔹 Ruta final del archivo
         $filePath = $folderPath . $fileName;
-    
+
         // 🔹 Guardar el PDF sin sobrescribir los anteriores
         file_put_contents($filePath, $dompdf->output());
-    
+
         return $filePath; // Retorna la ruta del archivo
     }
-    
 
+
+
+    public function enviarCorreo()
+    {
+        $email = \Config\Services::email();
+
+        // Configuración del remitente
+        $email->setFrom('agusfull22@hotmail.com', 'Tu Nombre o Empresa');
+        $email->setTo('agustin.moya.4219@gmail.com');
+
+        // Asunto y mensaje
+        $email->setSubject('📩 Prueba de correo con adjuntos');
+        $email->setMessage('<p>Hola, aquí tienes los archivos adjuntos.</p>');
+
+        // Adjuntar archivos (PDF e imágenes)
+        /*         $pdfPath = WRITEPATH . 'uploads/documento.pdf';
+        $image1 = WRITEPATH . 'uploads/imagen1.jpg';
+        $image2 = WRITEPATH . 'uploads/imagen2.png'; */
+
+        /*      if (file_exists($pdfPath)) $email->attach($pdfPath);
+        if (file_exists($image1)) $email->attach($image1);
+        if (file_exists($image2)) $email->attach($image2); */
+
+        // Enviar correo
+        if ($email->send()) {
+            return "✅ Correo enviado correctamente.";
+        } else {
+            return "❌ Error al enviar el correo: " . $email->printDebugger(['headers']);
+        }
+    }
 
 
 
