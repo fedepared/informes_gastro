@@ -393,4 +393,39 @@ class Informes extends BaseController
             ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    public function descargarArchivo()
+    {
+        $urlRelativa = $this->request->getGet('url');
+
+        if (!$urlRelativa) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'status' => 'error',
+                'message' => 'No se proporcionó la URL del archivo.'
+            ]);
+        }
+
+        // Construir la ruta completa al archivo
+        $rutaCompleta = FCPATH . str_replace('\\', '/', $urlRelativa);
+
+        // Verificar si el archivo existe
+        if (!file_exists($rutaCompleta)) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'status' => 'error',
+                'message' => 'El archivo no se encontró.'
+            ]);
+        }
+
+        // Obtener información del archivo
+        $nombreArchivo = basename($rutaCompleta);
+        $mime = mime_content_type($rutaCompleta);
+
+        // Preparar la respuesta para la descarga
+        $this->response->setHeader('Content-Type', $mime);
+        $this->response->setHeader('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
+        $this->response->setHeader('Content-Length', filesize($rutaCompleta));
+        readfile($rutaCompleta);
+        return $this->response;
+        /* http://localhost:8080/descargar-archivo?url=pdfs\agus_123456\agus_123456_iosfa_2025_03_22_1744038309.pdf */
+    }
 }
