@@ -37,4 +37,5 @@ $routes->delete('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
 
 
 $routes->post('/login', 'Usuarios::login');
+$routes->post('/cambio', 'Usuarios::cambiarPassword');
 

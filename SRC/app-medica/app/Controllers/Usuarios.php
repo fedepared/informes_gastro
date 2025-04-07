@@ -14,6 +14,86 @@ class Usuarios extends BaseController
         $this->UsuariosModel = new UsuariosModel();
     }
 
+    public function cambiarPassword()
+    {
+        $model = new UsuariosModel(); // Instanciamos el modelo de usuarios
+        $data = $this->request->getJSON(true);
+
+        // Verificar si se recibieron los datos correctamente
+        if (!$data) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se recibieron datos'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Validar que los datos requeridos estén presentes
+        if (!isset($data['id_usuario']) || !isset($data['password_actual']) || !isset($data['password_nuevo']) || !isset($data['password_confirmar'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Faltan datos requeridos: id_usuario, password_actual, password_nuevo, password_confirmar'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        $idUsuario = $data['id_usuario'];
+        $passwordActual = $data['password_actual'];
+        $passwordNuevo = $data['password_nuevo'];
+        $passwordConfirmar = $data['password_confirmar'];
+
+        // Buscar el usuario por ID
+        $usuario = $model->find($idUsuario);
+
+        if (!$usuario) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Usuario no encontrado'
+            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+        }
+
+        // Verificar la contraseña actual
+        if (!password_verify($passwordActual, $usuario['pass'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'La contraseña actual es incorrecta'
+            ])->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED);
+        }
+
+        // Verificar si la nueva contraseña y la confirmación coinciden
+        if ($passwordNuevo !== $passwordConfirmar) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'La nueva contraseña y la confirmación no coinciden'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Verificar la longitud de la nueva contraseña (opcional, pero recomendado)
+        if (strlen($passwordNuevo) < 6) { // Ejemplo: mínimo 6 caracteres
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'La nueva contraseña debe tener al menos 6 caracteres'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Hashear la nueva contraseña
+        $passwordHashNuevo = password_hash($passwordNuevo, PASSWORD_DEFAULT);
+
+        // Actualizar la contraseña del usuario
+        $dataUpdate = [
+            'pass' => $passwordHashNuevo
+        ];
+
+        if ($model->update($idUsuario, $dataUpdate)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Contraseña actualizada exitosamente'
+            ])->setStatusCode(ResponseInterface::HTTP_OK);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Error al actualizar la contraseña'
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
 
     public function login()
     {
