@@ -318,14 +318,79 @@ class Informes extends BaseController
      */
     public function updateInforme($id)
     {
-        $data = [
-            'nombre_paciente' => 'abril',
-            'fecha' => '2025-03-22',
-            'url_archivo' => 'url',
-            'mail_paciente' => 'abril@gmail.com',
-            'id_cobertura' => '5',
-        ];
-        $this->InformesModel->update($id, $data);
-        echo 'Informe actualizado';
+        $data = $this->request->getJSON(true);
+
+        // Verificar si se recibieron datos
+        if (!$data) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se recibieron datos para actualizar'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Validar que al menos un campo para actualizar esté presente
+        if (empty($data)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se proporcionaron campos para actualizar'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Crear array con los datos a actualizar, solo incluyendo los que se reciben
+        $updateData = [];
+        if (isset($data['nombre_paciente'])) {
+            $updateData['nombre_paciente'] = trim($data['nombre_paciente']);
+        }
+        if (isset($data['dni_paciente'])) {
+            $updateData['dni_paciente'] = trim($data['dni_paciente']);
+        }
+        if (isset($data['fecha'])) {
+            $updateData['fecha'] = $data['fecha'];
+        }
+        if (isset($data['url_archivo'])) {
+            $updateData['url_archivo'] = $data['url_archivo'];
+        }
+        if (isset($data['mail_paciente'])) {
+            $updateData['mail_paciente'] = $data['mail_paciente'];
+        }
+        if (isset($data['tipo_informe'])) {
+            $updateData['tipo_informe'] = trim($data['tipo_informe']);
+        }
+        if (isset($data['id_cobertura'])) {
+            $updateData['id_cobertura'] = $data['id_cobertura'];
+        }
+
+        // Si no hay datos válidos para actualizar, retornar un error
+        if (empty($updateData)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se proporcionaron datos válidos para actualizar'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
+
+        // Intentar actualizar el informe
+        $informeModel = new \App\Models\InformesModel();
+        $informe = $informeModel->find($id);
+
+        if (!$informe) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Informe no encontrado con ID: ' . $id
+            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+        }
+
+        if ($informeModel->update($id, $updateData)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Informe actualizado exitosamente',
+                'data' => $updateData
+            ])->setStatusCode(ResponseInterface::HTTP_OK);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Error al actualizar el informe',
+                'errors' => $informeModel->errors() // Puedes devolver los errores de validación si los tienes configurados en el modelo
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }

@@ -23,7 +23,7 @@ $routes->get('/usuario/borrar/(:num)', 'Usuarios::deleteUsuarios/$1');
 $routes->get('/informes', 'Informes::getInformes');
 $routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
 $routes->post('/informe/alta', 'Informes::postInforme');
-$routes->get('/informe/editar/(:num)', 'Informes::updateInforme/$1');
+$routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
 $routes->get('/informe/mail', 'Informes::enviarCorreo');
 
