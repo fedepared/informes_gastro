@@ -25,6 +25,7 @@ $routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
 $routes->post('/informe/alta', 'Informes::postInforme');
 $routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
+
 $routes->get('/informe/mail', 'Informes::enviarCorreo');
 
 
