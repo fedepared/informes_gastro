@@ -6,6 +6,14 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
+
+    public string $sessionDriver = 'CodeIgniter\Session\Handlers\FileHandler';
+    public bool $sessionMatchIP = false;
+    public int $sessionExpiration = 7200; // 2 horas
+    public string $sessionSavePath = WRITEPATH . 'session';
+    public string $sessionCookieName = 'ci_session';
+
+
     /**
      * --------------------------------------------------------------------------
      * Base Site URL
@@ -133,7 +141,7 @@ class App extends BaseConfig
      * @see https://www.php.net/manual/en/timezones.php for list of timezones
      *      supported by PHP.
      */
-    public string $appTimezone = 'UTC';
+    public string $appTimezone = 'America/Argentina/Buenos_Aires';
 
     /**
      * --------------------------------------------------------------------------

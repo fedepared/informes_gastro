@@ -26,7 +26,7 @@ $routes->post('/informe/alta', 'Informes::postInforme');
 $routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
 
-$routes->get('/informe/mail', 'Informes::enviarCorreo');
+$routes->get('/informe/mail', 'Informes::enviarCorreoPHPMailerPruebaGmail');
 
 
 $routes->get('/coberturas', 'Coberturas::getCoberturas');
@@ -40,3 +40,4 @@ $routes->delete('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
 $routes->post('/login', 'Usuarios::login');
 $routes->post('/cambio', 'Usuarios::cambiarPassword');
 $routes->get('/descargar-archivo', 'Informes::descargarCarpeta');
+$routes->get('/logout', 'Usuarios::logout');

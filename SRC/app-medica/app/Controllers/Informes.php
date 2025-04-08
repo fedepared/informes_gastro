@@ -11,6 +11,10 @@ use PHPMailer\PHPMailer\Exception;
 use CodeIgniter\HTTP\ResponseInterface;
 use ZipArchive;
 
+
+use PHPMailer\PHPMailer\SMTP;
+
+
 class Informes extends BaseController
 {
     private $InformesModel;
@@ -18,6 +22,43 @@ class Informes extends BaseController
     public function __construct()
     {
         $this->InformesModel = new InformesModel();
+    }
+
+    public function enviarCorreoPHPMailerPruebaGmail()
+    {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Configuración del Servidor SMTP para Gmail
+            $mail->SMTPDebug = SMTP::DEBUG_SERVER; // Para ver la comunicación detallada con el servidor
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com';  // Servidor SMTP de Gmail
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'agustin.moya.4219@gmail.com'; // Tu dirección de correo electrónico de Gmail
+            $mail->Password   = 'zvij awxq gerx zxuv';    // **¡¡¡COLOCA AQUÍ TU CONTRASEÑA DE GMAIL O CONTRASEÑA DE APLICACIÓN!!!**
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Use TLS
+            $mail->Port       = 587;                // Puerto TCP para TLS
+
+            // Configuración del Remitente y Destinatario
+            $mail->setFrom('agustin.moya.4219@gmail.com', 'Agustín Moya');
+            $mail->addAddress('agusfull22@hotmail.com');     // Agregar destinatario
+
+            // Contenido del Correo
+            $mail->isHTML(true);               // Establecer el formato del correo electrónico en HTML
+            $mail->Subject = 'Prueba de correo con PHPMailer (Desde Gmail)';
+            $mail->Body    = '<p>Hola,</p><p>Este es un correo de prueba enviado con PHPMailer desde mi cuenta de Gmail.</p>';
+            $mail->AltBody = 'Hola, Este es un correo de prueba enviado con PHPMailer desde mi cuenta de Gmail.'; // Cuerpo de texto plano
+
+            $mail->send();
+            return $this->response->setBody("✅ Correo de prueba enviado correctamente con PHPMailer desde Gmail."); // Texto plano
+            // O si prefieres JSON:
+            // return $this->response->setJSON(['status' => 'success', 'message' => 'Correo de prueba enviado correctamente con PHPMailer desde Gmail.']);
+
+        } catch (Exception $e) {
+            return $this->response->setStatusCode(500)->setBody("❌ Error al enviar el correo con PHPMailer desde Gmail: {$mail->ErrorInfo}"); // Texto plano con código de error
+            // O si prefieres JSON:
+            // return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Error al enviar el correo con PHPMailer desde Gmail: ' . $mail->ErrorInfo]);
+        }
     }
 
     /**
@@ -300,59 +341,6 @@ class Informes extends BaseController
         }
     }
 
-    function sendEmailWithPDF($recipientEmail, $pdfPath)
-    {
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = 'smtp.office365.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'agusfull22@hotmail.com';
-            $mail->Password = 'Afma0018'; // ⚠ ¡Nunca compartas tu contraseña en público!
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-
-            $mail->setFrom('agusfull22@hotmail.com', 'Sistema de Informes');
-            $mail->addAddress($recipientEmail);
-            $mail->Subject = 'Informe generado';
-            $mail->Body = 'Adjunto encontrarás el informe en formato PDF.';
-            $mail->isHTML(true);
-            $mail->addAttachment($pdfPath);
-
-            return $mail->send() ? 'Correo enviado correctamente' : 'Error en el envío: ' . $mail->ErrorInfo;
-        } catch (Exception $e) {
-            return 'Excepción al enviar el correo: ' . $mail->ErrorInfo;
-        }
-    }
-
-    public function enviarCorreo()
-    {
-        $email = \Config\Services::email();
-
-        // Configuración del remitente
-        $email->setFrom('agusfull22@hotmail.com', 'Tu Nombre o Empresa');
-        $email->setTo('agustin.moya.4219@gmail.com');
-
-        // Asunto y mensaje
-        $email->setSubject('📩 Prueba de correo con adjuntos');
-        $email->setMessage('<p>Hola, aquí tienes los archivos adjuntos.</p>');
-
-        // Adjuntar archivos (PDF e imágenes)
-        /*         $pdfPath = WRITEPATH . 'uploads/documento.pdf';
-        $image1 = WRITEPATH . 'uploads/imagen1.jpg';
-        $image2 = WRITEPATH . 'uploads/imagen2.png'; */
-
-        /*      if (file_exists($pdfPath)) $email->attach($pdfPath);
-        if (file_exists($image1)) $email->attach($image1);
-        if (file_exists($image2)) $email->attach($image2); */
-
-        // Enviar correo
-        if ($email->send()) {
-            return "✅ Correo enviado correctamente.";
-        } else {
-            return "❌ Error al enviar el correo: " . $email->printDebugger(['headers']);
-        }
-    }
 
 
 

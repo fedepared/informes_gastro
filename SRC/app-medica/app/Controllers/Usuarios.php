@@ -100,7 +100,7 @@ class Usuarios extends BaseController
         $model = new UsuariosModel(); // Instanciamos el modelo correctamente
 
         $data = $this->request->getJSON(true);
-        
+
         // Verificar si se recibieron los datos correctamente
         if (!$data) {
             return $this->response->setJSON([
@@ -119,7 +119,7 @@ class Usuarios extends BaseController
 
         // Usar la función personalizada para buscar el usuario
         $usuario = $model->where('nombre_usuario', $data['nombre_usuario'])->first();
-        
+
         if (!$usuario) {
             return $this->response->setJSON([
                 'status' => 'error',
@@ -135,6 +135,15 @@ class Usuarios extends BaseController
             ])->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED);
         }
 
+        //logica token carpetas usadas , config ->filters  y Filters -> authGuard
+        \Config\Services::session()->set([
+            'usuario_logueado' => true, // esta es la clave que revisa el filtro
+            'id_usuario' => $usuario['id_usuario'],
+            'nombre_usuario' => $usuario['nombre_usuario']
+        ]);
+        // Fin logica token        
+
+
         // Si las credenciales son correctas, devolver una respuesta de éxito
         return $this->response->setJSON([
             'status' => 'success',
@@ -146,16 +155,13 @@ class Usuarios extends BaseController
             ]
         ])->setStatusCode(ResponseInterface::HTTP_OK);
     }
-    
-    // Ejemplo de un método ficticio para generar un token JWT
-    private function generateJWT($userId)
+    public function logout()
     {
-        // Lógica para generar el token JWT
-        // Puedes usar librerías como Firebase JWT para esto.
-        return 'JWT_TOKEN_GENERADO';
+        session()->destroy();
+        return redirect()->to('/login');
     }
     
-    
+
 
 
     // 🔹 Obtener todos los usuarios
