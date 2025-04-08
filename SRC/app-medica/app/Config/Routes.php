@@ -41,3 +41,4 @@ $routes->post('/login', 'Usuarios::login');
 $routes->post('/cambio', 'Usuarios::cambiarPassword');
 $routes->get('/descargar-archivo', 'Informes::descargarCarpeta');
 $routes->get('/logout', 'Usuarios::logout');
+$routes->get('informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
