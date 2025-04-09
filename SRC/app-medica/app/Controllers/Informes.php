@@ -10,6 +10,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use CodeIgniter\HTTP\ResponseInterface;
 use ZipArchive;
+use App\Models\UsuariosModel;
 
 
 use PHPMailer\PHPMailer\SMTP;
@@ -285,59 +286,70 @@ class Informes extends BaseController
         }
     }
 
-    private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
+    public function solicitarCambioPassword()
     {
-        $mail = new PHPMailer(true);
+        $model = new UsuariosModel();
+        $data = $this->request->getJSON(true);
 
-        try {
-            // Configuración del servidor SMTP de DonWeb (Ferozo)
-            $mail->SMTPDebug = SMTP::DEBUG_SERVER; // Cambiar a SMTP::DEBUG_SERVER para ver más info
-            $mail->isSMTP();
-            $mail->Host       = 'c0170053.ferozo.com';  // Verificá que sea el correcto
-            $mail->SMTPAuth   = true;
-            $mail->Username   = 'estudio@dianaestrin.com';
-            $mail->Password   = '@Wurst2024@';
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port       = 465;
+        if (!$data || !isset($data['mail'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Se requiere el correo electrónico.'
+            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+        }
 
-            
+        $mail = trim($data['mail']);
+        $usuario = $model->where('mail', $mail)->first();
 
-            $mail->SMTPOptions = [
-                'ssl' => [
-                    'verify_peer'       => false,
-                    'verify_peer_name'  => false,
-                    'allow_self_signed' => true
-                ]
-            ];
+        if (!$usuario) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se encontró ningún usuario con ese correo electrónico.'
+            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+        }
 
-            // Remitente y destinatario
-            $mail->setFrom('turnos@dianaestrin.com', 'Consultorio Diana Estrin');
-            $mail->addAddress($destinatario);
+        // Generar número random de 6 dígitos
+        $codigoCambio = random_int(100000, 999999);
 
-            // Contenido
-            $mail->isHTML(true);
-            $mail->Subject = $asunto;
-            $mail->Body    = $mensaje;
-            $mail->AltBody = strip_tags($mensaje);
+        // Guardar el código en pass_aux y marcar pidio_cambio como true
+        $dataUpdate = [
+            'pass_aux' => $codigoCambio,
+            'pidio_cambio' => true,
+        ];
 
-            // Adjuntos
-            if (!empty($adjuntos)) {
-                foreach ($adjuntos as $rutaAdjunto) {
-                    if (file_exists($rutaAdjunto)) {
-                        $mail->addAttachment($rutaAdjunto, basename($rutaAdjunto));
-                    } else {
-                        log_message('warning', 'No se encontró el archivo para adjuntar: ' . $rutaAdjunto);
-                    }
-                }
+        if ($model->update($usuario['id'], $dataUpdate)) {
+            // Enviar el correo electrónico con el código
+            $email = \Config\Services::email();
+
+            $email->setFrom('tu_correo@example.com', 'Sistema de Recuperación de Contraseña'); // Reemplaza con tu correo
+            $email->setTo($mail);
+            $email->setSubject('Solicitud de Cambio de Contraseña');
+            $email->setMessage("Hola " . $usuario['nombre'] . ",\n\nHas solicitado cambiar tu contraseña. Tu código de verificación es: " . $codigoCambio . "\n\nUtiliza este código para iniciar sesión y establecer una nueva contraseña.\n\nSi no solicitaste este cambio, ignora este correo.");
+
+            if ($email->send()) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Se ha enviado un código de verificación a tu correo electrónico.',
+                ])->setStatusCode(ResponseInterface::HTTP_OK);
+            } else {
+                // Si falla el envío del correo, revertir los cambios en la base de datos
+                $dataRevert = [
+                    'pass_aux' => null,
+                    'pidio_cambio' => false,
+                ];
+                $model->update($usuario['id'], $dataRevert);
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Error al enviar el correo electrónico con el código de verificación.'
+                ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
             }
-
-            $mail->send();
-            return 'Correo enviado correctamente con PHPMailer.';
-        } catch (Exception $e) {
-            return "Error al enviar el correo con PHPMailer: {$mail->ErrorInfo}";
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Error al guardar el código de verificación en la base de datos.'
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-
 
 
     public function reenviarInformePorId($idInforme)
@@ -428,6 +440,42 @@ class Informes extends BaseController
         file_put_contents($filePath, $dompdf->output());
 
         return $fileName; // Retornar solo el nombre del archivo
+    }
+
+    // Método para enviar correos electrónicos con PHPMailer
+    private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
+    {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Configuración del servidor SMTP
+            $mail->isSMTP();
+            $mail->Host       = 'c0170053.ferozo.com';  // Verificá que sea el correcto
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'estudio@dianaestrin.com';
+            $mail->Password   = '@Wurst2024@';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
+
+            // Configuración del remitente y destinatario
+            $mail->setFrom('estudio@dianaestrin.com', 'Your Name'); // Cambiar por tu correo y nombre
+            $mail->addAddress($destinatario);
+
+            // Contenido del correo
+            $mail->isHTML(true);
+            $mail->Subject = $asunto;
+            $mail->Body    = $mensaje;
+
+            // Adjuntar archivos
+            foreach ($adjuntos as $adjunto) {
+                $mail->addAttachment($adjunto);
+            }
+
+            $mail->send();
+            return 'Correo enviado correctamente.';
+        } catch (Exception $e) {
+            return "Error al enviar el correo: {$mail->ErrorInfo}";
+        }
     }
 
     // ... (función descargarCarpeta) ...
