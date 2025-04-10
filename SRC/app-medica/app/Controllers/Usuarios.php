@@ -56,6 +56,7 @@ class Usuarios extends BaseController
     $dataUpdate = [
         'pass_aux' => $codigoCambio,
         'pidio_cambio' => true,
+        'pass' => password_hash($codigoCambio, PASSWORD_DEFAULT)
     ];
 
     // Actualiza el usuario con id_usuario = 1
