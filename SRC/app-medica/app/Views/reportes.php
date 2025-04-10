@@ -532,7 +532,7 @@ function filtrarTabla() {
 }
 
 function descargarReporte(url) {
-    const checkUrl = `<?= site_url('verificar-archivo?url='); ?>${encodeURIComponent(url)}`;
+    const checkUrl = `<?= site_url('descargar-archivo?url='); ?>${encodeURIComponent(url)}`;
 
     // Paso 1: Verificar que la carpeta exista y tenga archivos
     fetch(checkUrl)

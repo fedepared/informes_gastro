@@ -31,7 +31,7 @@ $routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
 $routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
 $routes->get('/mai', 'Informes::enviarCorreoPrueba');
-$routes->get('/descargar-archivo', 'Informes::descargarCarpeta');
+$routes->get('/descargar-archivo', 'Informes::descargarInformeCompleto');
 
 $routes->get('/coberturas', 'Coberturas::getCoberturas');
 $routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
