@@ -10,16 +10,17 @@ use App\Models\UsuariosModel;
 
 
 use CodeIgniter\Controller; // Asegúrate de que estás extendiendo Controller
-use CodeIgniter\API\ResponseTrait; // Import ResponseTrait for API responses
+use CodeIgniter\API\ResponseTrait; 
+
 class Usuarios extends BaseController
 {
-    use ResponseTrait; // Use ResponseTrait for failBadRequest and other response helpers
+    use ResponseTrait; 
     private $UsuariosModel;
 
     public function __construct()
-{
-    $this->UsuariosModel = new UsuariosModel();
-}
+    {
+        $this->UsuariosModel = new UsuariosModel();
+    }
 
     private function enviarCorreoPHPMailer($to, $subject, $message)
     {
@@ -56,7 +57,7 @@ class Usuarios extends BaseController
     $dataUpdate = [
         'pass_aux' => $codigoCambio,
         'pidio_cambio' => true,
-        'pass' => password_hash($codigoCambio, PASSWORD_DEFAULT)
+        'pass' => password_hash($codigoCambio, PASSWORD_DEFAULT) 
     ];
 
     // Actualiza el usuario con id_usuario = 1
@@ -93,6 +94,7 @@ class Usuarios extends BaseController
         $this->UsuariosModel->update(1, [
             'pass_aux' => null,
             'pidio_cambio' => false,
+
         ]);
 
         return $this->failServerError('Error al enviar el correo: ' . $resultadoCorreo);
@@ -158,13 +160,11 @@ public function verificarYActualizarPassword()
     }
 }
 
-
-    /* 
     public function cambiarPassword()
     {
         $model = new UsuariosModel(); // Instanciamos el modelo de usuarios
         $data = $this->request->getJSON(true);
-
+       
         // Verificar si se recibieron los datos correctamente
         if (!$data) {
             return $this->response->setJSON([
@@ -174,15 +174,15 @@ public function verificarYActualizarPassword()
         }
 
         // Validar que los datos requeridos estén presentes
-        if (!isset($data['id_usuario']) || !isset($data['password_actual']) || !isset($data['password_nuevo']) || !isset($data['password_confirmar'])) {
+        if (!isset($data['id_usuario']) || !isset($data['password_nuevo']) || !isset($data['password_confirmar'])) {
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => 'Faltan datos requeridos: id_usuario, password_actual, password_nuevo, password_confirmar'
+                'message' => 'Faltan datos requeridos: id_usuario, password_nuevo, password_confirmar'
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
         $idUsuario = $data['id_usuario'];
-        $passwordActual = $data['password_actual'];
+        // $passwordActual = $data['password_actual'];
         $passwordNuevo = $data['password_nuevo'];
         $passwordConfirmar = $data['password_confirmar'];
 
@@ -196,13 +196,6 @@ public function verificarYActualizarPassword()
             ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
         }
 
-        // Verificar la contraseña actual
-        if (!password_verify($passwordActual, $usuario['pass'])) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'La contraseña actual es incorrecta'
-            ])->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED);
-        }
 
         // Verificar si la nueva contraseña y la confirmación coinciden
         if ($passwordNuevo !== $passwordConfirmar) {
@@ -212,20 +205,15 @@ public function verificarYActualizarPassword()
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
-        // Verificar la longitud de la nueva contraseña (opcional, pero recomendado)
-        if (strlen($passwordNuevo) < 6) { // Ejemplo: mínimo 6 caracteres
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'La nueva contraseña debe tener al menos 6 caracteres'
-            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
-        }
-
+    
         // Hashear la nueva contraseña
         $passwordHashNuevo = password_hash($passwordNuevo, PASSWORD_DEFAULT);
 
         // Actualizar la contraseña del usuario
         $dataUpdate = [
-            'pass' => $passwordHashNuevo
+            'pass' => $passwordHashNuevo,
+            'pass_aux' => null,
+            'pidio_cambio' => false,
         ];
 
         if ($model->update($idUsuario, $dataUpdate)) {
@@ -239,7 +227,8 @@ public function verificarYActualizarPassword()
                 'message' => 'Error al actualizar la contraseña'
             ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
         }
-    } */
+    }
+
 
     public function login()
     {
@@ -297,18 +286,27 @@ public function verificarYActualizarPassword()
             'data' => [
                 'id' => $usuario['id_usuario'],
                 'nombre_usuario' => $usuario['nombre_usuario'],
-                'mail' => $usuario['mail']
+                'mail' => $usuario['mail'],
+                'pidio_cambio' => $usuario['pidio_cambio'],
             ]
         ])->setStatusCode(ResponseInterface::HTTP_OK);
     }
+    
+    // Ejemplo de un método ficticio para generar un token JWT
+    private function generateJWT($userId)
+    {
+        // Lógica para generar el token JWT
+        // Puedes usar librerías como Firebase JWT para esto.
+        return 'JWT_TOKEN_GENERADO';
+    }
+    
+    
     public function logout()
     {
         session()->destroy();
         return redirect()->to('/login');
     }
-
-
-
+    
 
     // 🔹 Obtener todos los usuarios
     public function getUsuarios()

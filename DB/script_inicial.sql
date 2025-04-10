@@ -12,9 +12,11 @@ DROP TABLE IF EXISTS `informes`;
 CREATE TABLE `informes` (
   `id_informe` int NOT NULL,
   `nombre_paciente` varchar(100) NOT NULL,
+  `dni_paciente` varchar(100) NOT NULL,
   `fecha` date NOT NULL,
   `url_archivo` varchar(250) NOT NULL,
   `mail_paciente` varchar(100) NOT NULL,
+  `tipo_informe` varchar(5) NOT NULL,
   `id_cobertura` int DEFAULT NULL,
   PRIMARY KEY (`id_informe`),
   KEY `informe_cobertura_idx` (`id_cobertura`),

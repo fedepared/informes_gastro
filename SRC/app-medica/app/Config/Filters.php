@@ -51,7 +51,9 @@ class Filters extends BaseConfig
                 'coberturas_view',
             ],
             'except' => [
-                'login', // Excluir la ruta /login del filtro auth
+                'login',
+                
+               
             ],
         ],
     ];

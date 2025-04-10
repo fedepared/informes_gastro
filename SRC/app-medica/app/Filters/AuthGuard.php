@@ -14,7 +14,7 @@ class AuthGuard implements FilterInterface
 
         // Si no hay usuario logueado, redirige al login
         if (!$session->get('usuario_logueado')) {
-            return redirect()->to('/login');
+            return redirect()->to('/error');
         }
     }
 
