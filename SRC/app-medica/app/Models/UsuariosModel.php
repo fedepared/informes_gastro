@@ -11,7 +11,7 @@ class UsuariosModel extends Model
     protected $primaryKey = 'id_usuario';
 
     protected $returnType     = 'array';
-    protected $allowedFields = ['nombre_usuario','pass','mail'];
+    protected $allowedFields = ['nombre_usuario','pass','mail','pidio_cambio','pass_aux'];
     
 
 }

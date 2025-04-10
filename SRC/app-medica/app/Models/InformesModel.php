@@ -11,8 +11,23 @@ class InformesModel extends Model
     protected $primaryKey = 'id_informe';
 
     protected $returnType     = 'array';
-    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura'];
+    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura','id_informe','dni_paciente','tipo_informe'];
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
     public function getInformesWithCoberturas()
