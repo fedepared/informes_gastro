@@ -531,27 +531,37 @@ function filtrarTabla() {
     });
 }
 
-function descargarReporte(url) {
-    const checkUrl = `<?= site_url('descargar-archivo?url='); ?>${encodeURIComponent(url)}`;
+function descargarReporte(rutaRelativa) { 
+    const url = '<?= site_url('/descargar-archivo?ruta='); ?>' + encodeURIComponent(rutaRelativa);
 
-    // Paso 1: Verificar que la carpeta exista y tenga archivos
-    fetch(checkUrl)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Mostrar mensaje verde y hacer la descarga con redirección clásica
-                mostrarMensaje('success', data.message || 'Iniciando descarga...');
-                setTimeout(() => {
-                    window.location.href = `<?= site_url('descargar-archivo?url='); ?>${encodeURIComponent(url)}`;
-                }, 1000);
-            } else {
-                // Mostrar mensaje de error
-                mostrarMensaje('error', data.message || 'No se pudo procesar la descarga');
+    fetch(url)
+        .then(async response => {
+            const contentType = response.headers.get('Content-Type');
+
+            if (contentType && contentType.includes('text')) {
+                const errorText = await response.text();
+                mostrarMensaje("error", "Error al descargar: " + errorText);
+                throw new Error(errorText);
             }
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+
+            // Quitar 'uploads/' del principio si existe
+            let cleanRuta = rutaRelativa.startsWith('uploads/') ? rutaRelativa.substring(8) : rutaRelativa;
+
+            // Reemplazar las barras por guiones bajos o como quieras unir los nombres
+            const nombreArchivo = cleanRuta.replace(/\//g, '_') + '.zip';
+
+            link.download = nombreArchivo;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         })
-        .catch(err => {
-            console.error(err);
-            mostrarMensaje('error', 'Ocurrió un error al verificar la carpeta');
+        .catch(error => {
+            mostrarMensaje("error", "Ocurrió un error al intentar descargar el archivo.");
         });
 }
 
