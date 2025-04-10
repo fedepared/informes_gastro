@@ -28,5 +28,17 @@ class Home extends BaseController
 
         
     }
+    public function resetpass(): string
+    {
+        return view('resetpass');
+
+        
+    }
+    public function error(): string
+    {
+        return view('error');
+
+        
+    }
 }
 ?>

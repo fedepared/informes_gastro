@@ -94,22 +94,30 @@
     width: 260px;
     border-color: #c6bcbc;
     }
-    
+    .asterisco {
+        color: #007bbd;
+    }
+    button:disabled {
+            background-color: #009fdf61;
+            cursor: not-allowed;
+        }
 </style>
 
+
 <div class="formulario">
+   <label>(<span class="asterisco">*</span>) Datos obligatorios</label> 
     <h2>Carga de Informe</h2>
     <form id="formInforme" class="form"  action="<?= site_url('/informe/alta'); ?>" method="POST" enctype="multipart/form-data">
         <div class="datos1">
             <div>
-                <label>Fecha</label>
-                <input type="date" name="fecha">
+                <label>Fecha <span class="asterisco">*</span></label>
+                <input type="date" name="fecha" class="required-field">
             </div>
             <div>
-                <label>Tipo de estudio</label>
-                <select name="tipo_estudio">
-                    <option value="VIDEOESOFAGASTRODUODENOSCOPIA">VIDEOESOFAGASTRODUODENOSCOPIA</option>
-                    <option value="VIDEOCOLONOSCOPIA">VIDEOCOLONOSCOPIA</option>
+                <label>Tipo de estudio <span class="asterisco">*</span></label>
+                <select name="tipo_informe" class="required-field">
+                    <option value="VEDA">VIDEOESOFAGASTRODUODENOSCOPIA</option>
+                    <option value="VCC">VIDEOCOLONOSCOPIA</option>
                 </select>
             </div>
         </div>
@@ -118,8 +126,8 @@
 
         <div class="datos1">
             <div>
-                <label>Nombre y apellido</label>
-                <input type="text" name="nombre_apellido">
+                <label>Nombre y apellido <span class="asterisco">*</span></label>
+                <input type="text" name="nombre_paciente" class="required-field">
             </div>
             <div>
                 <label>Fecha de nacimiento</label>
@@ -128,33 +136,34 @@
         </div>
 
         <div class="datos1">
-            <div>
+            <div >
                 <label>Edad</label>
-                <input type="number" name="edad" id="edad" readonly>
+                <input type="number" name="edad" id="edad" readonly disabled="true">
             </div>
             <div>
-                <label>Número de documento</label>
-                <input type="text" name="documento">
+                <label>Número de documento <span class="asterisco">*</span></label>
+                <input type="text" name="dni_paciente" class="required-field">
             </div>
         </div>
 
         <div class="datos1">
             <div>
-                <label>Tipo de cobertura</label>
-                <select id="cobertura" name="cobertura">
+                <label>Tipo de cobertura <span class="asterisco">*</span></label>
+                <select id="cobertura" name="id_cobertura" class="required-field">
                     <option value="">Cargando...</option>
                 </select>
             </div>
             <div>
                 <label>Número de afiliado</label>
-                <input type="text" name="afiliado">
+                <input type="text" name="afiliado" id="afiliado" disabled>
             </div>
         </div>
 
         <div class="datos1">
             <div>
-                <label>Mail</label>
-                <input type="email" name="mail">
+                <label>Mail <span class="asterisco">*</span></label>
+                <input type="email" name="mail_paciente" class="required-field">
+                <span id="emailError" style="color: red; font-size: 0.9em; display: none;">El mail no es válido</span>
             </div>
             <div>
                 <label>Médico que envía el estudio</label>
@@ -173,9 +182,7 @@
         <label>Informe</label>
         <textarea name="informe"></textarea><br>
         <div class="datos1">
-    <div>
-        <label><input type="checkbox" id="vedaCheckbox">Es VEDA?</label>
-    </div>
+    
 </div>
 
 <!-- Inputs adicionales ocultos inicialmente -->
@@ -204,7 +211,7 @@
 
         <div class="datos1">
             <div>
-                <label>¿Se efectuó terapéutica?</label>
+                <label>¿Se efectuó terapéutica? </label>
                 <select name="terapeutico">
                     <option value="SI">SI</option>
                     <option value="NO">NO</option>
@@ -212,8 +219,7 @@
             </div>
             <div>
                 <label>¿Cuál?</label>
-                <select name="cual">
-                    <option value="NINGUNO">NINGUNO</option>
+                <select name="cual" >
                     <option value="POLIPECTOMIA">POLIPECTOMIA</option>
                     <option value="MUCOSECTOMIA">MUCOSECTOMIA</option>
                     <option value="DILATACION">DILATACION</option>
@@ -223,8 +229,8 @@
 
         <div class="datos1">
             <div>
-                <label>¿Se efectuó biopsia?</label>
-                <select name="biopsia" id="">
+                <label>¿Se efectuó biopsia? </label>
+                <select name="biopsia" >
                     <option value="SI">SI</option>
                     <option value="NO">NO</option>
                 </select>
@@ -235,15 +241,99 @@
             </div>
         </div>
 
-        <label>Subir fotos</label>
-        <input type="file" name="foto[]" accept="image/*" multiple>
+        <label>Subir fotos <span class="asterisco">*</span></label>
+        <input type="file" name="archivo[]" accept="image/*" multiple class="required-field">
 
-        <button type="submit" >Enviar</button>
+        <button type="submit"  id="btnEnviar" disabled="true" >Enviar</button>
     </form>
 </div>
 <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const coberturaSelect = document.getElementById('cobertura');
+    const afiliadoInput = document.getElementById('afiliado');
+
+    function verificarCobertura() {
+        const coberturaTexto = coberturaSelect.options[coberturaSelect.selectedIndex]?.text?.trim().toUpperCase();
+        const coberturaValor = coberturaSelect.value;
+
+        if (coberturaValor && coberturaTexto !== 'SIN COBERTURA') {
+            afiliadoInput.disabled = false;
+        } else {
+            afiliadoInput.value = '';
+            afiliadoInput.disabled = true;
+        }
+    }
+
+    // Ejecutar al cambiar la cobertura
+    coberturaSelect.addEventListener('change', verificarCobertura);
+
+    // Si las opciones se cargan dinámicamente
+    const observer = new MutationObserver(verificarCobertura);
+    observer.observe(coberturaSelect, { childList: true });
+});
 
 
+ // Validación de campos obligatorios
+ function validarFormulario() {
+        const campos = document.querySelectorAll('.required-field');
+        let formularioValido = true;
+
+        campos.forEach(campo => {
+            // Para archivos, verificar que se haya seleccionado al menos uno
+            if (campo.type === "file") {
+                if (campo.files.length === 0) formularioValido = false;
+            } else if (campo.tagName === "SELECT") {
+                if (campo.value === '') formularioValido = false;
+            } else {
+                if (campo.value.trim() === '') formularioValido = false;
+            }
+            if (campo.type === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(campo.value.trim())) {
+                formularioValido = false;
+                campo.classList.add("input-invalido");
+            } else {
+                campo.classList.remove("input-invalido");
+            }
+        }
+        });
+
+        // Habilita o deshabilita el botón
+        document.getElementById('btnEnviar').disabled = !formularioValido;
+    }
+
+    // Escuchar cambios en todos los campos obligatorios
+    window.addEventListener('DOMContentLoaded', () => {
+        const campos = document.querySelectorAll('.required-field');
+        campos.forEach(campo => {
+            campo.addEventListener('input', validarFormulario);
+            campo.addEventListener('change', validarFormulario); // Para select y file
+        });
+
+        validarFormulario(); // Validar al cargar la página
+    });
+   // Escuchar el cambio en el select de tipo de estudio
+   document.querySelector('select[name="tipo_informe"]').addEventListener('change', function() {
+        var tipoEstudio = this.value; // Obtenemos el valor seleccionado
+
+        // Verificamos si es VIDEOESOFAGASTRODUODENOSCOPIA o VIDEOCOLONOSCOPIA
+        var vedaInputs = document.getElementById('vedaInputs');
+        if (tipoEstudio === 'VIDEOESOFAGASTRODUODENOSCOPIA') {
+            vedaInputs.style.display = 'block'; // Mostrar los inputs
+        } else {
+            vedaInputs.style.display = 'none'; // Ocultar los inputs
+        }
+    });
+
+    // Inicializar el estado del formulario dependiendo del tipo de estudio ya seleccionado (si ya está predefinido)
+    window.addEventListener('DOMContentLoaded', function() {
+        var tipoEstudio = document.querySelector('select[name="tipo_informe"]').value;
+        if (tipoEstudio === 'VIDEOESOFAGASTRODUODENOSCOPIA') {
+            document.getElementById('vedaInputs').style.display = 'block';
+        } else {
+            document.getElementById('vedaInputs').style.display = 'none';
+        }
+    });
 
 
 
@@ -261,14 +351,7 @@
         document.getElementById('edad').value = edad;
     });
 
-    document.getElementById('vedaCheckbox').addEventListener('change', function () {
-        const vedaInputs = document.getElementById('vedaInputs');
-        if (this.checked) {
-            vedaInputs.style.display = 'block';
-        } else {
-            vedaInputs.style.display = 'none';
-        }
-    });
+  
 // Función para cargar las coberturas 
 function cargarCoberturas() {
         // Realiza la solicitud AJAX
@@ -308,6 +391,18 @@ function cargarCoberturas() {
     // Llama a la función para cargar las coberturas cuando la página esté lista
     window.addEventListener('DOMContentLoaded', cargarCoberturas);
  
+    document.getElementById('mail_paciente').addEventListener('input', function () {
+    const email = this.value.trim();
+    const emailError = document.getElementById('emailError');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (email !== '' && !emailRegex.test(email)) {
+        emailError.style.display = 'inline';
+    } else {
+        emailError.style.display = 'none';
+    }
+
+    validarFormulario(); // Esto asegura que también se actualice el botón Enviar
+});
+
 </script>
-</body>
-</html>

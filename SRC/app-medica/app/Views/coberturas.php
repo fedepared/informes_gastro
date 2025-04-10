@@ -9,7 +9,7 @@
 
     .container {
         width: 55%;
-        margin: 39px auto;
+        margin: 19px auto;
     }
 
     .card {
@@ -18,6 +18,7 @@
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         border: 2px solid #e1e1e1;
+        
     }
 
     h2 {
@@ -111,7 +112,7 @@
 
 .modal-button {
     padding: 10px 15px;
-    background-color: #28a745;
+    background-color: #007bbf;
     color: white;
     border-radius: 5px;
     cursor: pointer;
@@ -233,6 +234,18 @@ label {
     flex-direction: column;
 }
 
+.pagination button:disabled {
+    background-color: #007bbddb;
+    color: #ffffff;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+.modal-button:disabled,
+.modal-button.disabled-button {
+    background-color: #0087ce !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 </style>
 
@@ -277,10 +290,12 @@ label {
         </div>
         <form action="cobertura/alta" method="post">
             <label for="nombre_cobertura">Nombre Cobertura:</label>
-            <input type="text" id="nombre_cobertura" name="nombre_cobertura" required><br><br>
+            <input type="text" id="nombre_cobertura" name="nombre_cobertura" required required style="text-transform: uppercase;"><br><br>
             <div class="modal-footer">
-                <button type="submit" class="modal-button">Guardar</button>
                 <button type="button" class="modal-button cancel" onclick="closeModal('addModal')">Cancelar</button>
+                
+                <button type="submit" class="modal-button" id="btnGuardar" disabled>Guardar</button>
+
             </div>
         </form>
     </div>
@@ -300,10 +315,10 @@ label {
     <input type="hidden" name="_method" value="PUT">
     <input type="hidden" name="id_cobertura" id="edit_id">
     <label for="edit-nombre_cobertura">Nombre Cobertura:</label>
-    <input type="text" name="nombre_cobertura" id="edit_nombre" required>
+    <input type="text" name="nombre_cobertura" id="edit_nombre" required required style="text-transform: uppercase;">
     <div class="modal-footer">
-        <button type="submit" class="modal-button">Guardar</button>
         <button type="button" class="modal-button cancel" onclick="closeModal('editModal')">Cancelar</button>
+        <button type="submit" class="modal-button" id="btnGuardarEditar">Guardar</button>
     </div>
 </form>
     </div>
@@ -324,14 +339,47 @@ label {
         <input type="hidden" name="id_cobertura" id="delete_id">
     <p style="padding-bottom: 27px;">¿Estás seguro de eliminar esta cobertura?</p>
     <div class="modal-footer">
-        <button type="submit" class="modal-button">Eliminar</button>
         <button type="button" class="modal-button cancel" onclick="closeModal('deleteModal')">Cancelar</button>
+        <button type="submit" class="modal-button">Eliminar</button>
     </div>
-</form>
+</form> 
     </div>
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputCobertura = document.getElementById('nombre_cobertura');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const inputEditar = document.getElementById('edit_nombre');
+    const btnEditar = document.getElementById('btnGuardarEditar');
+
+    // Validación para agregar
+    inputCobertura.addEventListener('input', function () {
+        if (inputCobertura.value.trim() === '') {
+            btnGuardar.disabled = true;
+            btnGuardar.classList.add('disabled-button');
+        } else {
+            btnGuardar.disabled = false;
+            btnGuardar.classList.remove('disabled-button');
+        }
+    });
+
+    // Validación para editar
+    inputEditar.addEventListener('input', function () {
+        if (inputEditar.value.trim() === '') {
+            btnEditar.disabled = true;
+            btnEditar.classList.add('disabled-button');
+        } else {
+            btnEditar.disabled = false;
+            btnEditar.classList.remove('disabled-button');
+        }
+    });
+
+    // Inicializar el estado del botón editar cuando se abra el modal
+    document.getElementById('editModal').addEventListener('show', function () {
+        btnEditar.disabled = inputEditar.value.trim() === '';
+    });
+});
 let coberturas = []; // Variable global para almacenar las coberturas
     let currentPage = 1;
     const itemsPerPage = 5; // Cantidad de coberturas por página
@@ -368,19 +416,35 @@ let coberturas = []; // Variable global para almacenar las coberturas
 
         paginatedItems.forEach(cobertura => {
             const fila = document.createElement('tr');
-            fila.innerHTML = `
-                <td>${cobertura.nombre_cobertura}</td>
-                <td>
-                    <button style="width: 63px;height: 30px;border: none;border-radius: 6px;color: #000000; background-color: #ffc107;" 
+            let acciones = '';
+            if (cobertura.nombre_cobertura !== 'SIN COBERTURA') {
+
+                acciones = `
+       <button style="width: 63px;height: 30px;border: none;border-radius: 6px;color: #000000; background-color: #ffc107;" 
                         onclick="showModal('editModal', ${cobertura.id_cobertura}, '${cobertura.nombre_cobertura}')">Editar</button>
                     <button style="height: 30px;border: none; border-radius: 6px;width: 71px; color: #fff; background-color: #dc3545;"
                         onclick="showModalDelete(${cobertura.id_cobertura})">Eliminar</button>
-                </td>
-            `;
+    `;
+            }
+
+           
+fila.innerHTML = `
+    <td>${cobertura.nombre_cobertura}</td>
+    <td>${acciones}</td>
+`;
             tablaCoberturas.appendChild(fila);
         });
 
-        actualizarPaginacion();
+         // Actualizar número de página
+    document.getElementById('pageNumber').innerText = currentPage;
+
+// Control de botones
+const prevBtn = document.getElementById('prevPage');
+const nextBtn = document.getElementById('nextPage');
+const totalPages = Math.ceil(coberturas.length / itemsPerPage);
+
+prevBtn.disabled = currentPage === 1;
+nextBtn.disabled = currentPage >= totalPages;
     }
 
     function actualizarPaginacion() {
@@ -414,14 +478,14 @@ let coberturas = []; // Variable global para almacenar las coberturas
         document.getElementById('edit_nombre').value = nombre;
 
         // Asigna la URL correcta para el formulario de edición
-        document.getElementById('editForm').action = '/app-medica/public/index.php/cobertura/editar/' + id;
+        document.getElementById('editForm').action = '<?= site_url('cobertura/editar/'); ?>' + id;
     }
     modal.style.display = "block";
 
     }
     function showModalDelete(id) {
     
-    document.getElementById('deleteForm').action = '/app-medica/public/cobertura/borrar/' + id;
+    document.getElementById('deleteForm').action = '<?= site_url('cobertura/borrar/'); ?>' + id;
     document.getElementById('deleteModal').style.display = "block";
 }
 </script>

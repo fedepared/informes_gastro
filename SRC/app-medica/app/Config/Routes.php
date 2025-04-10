@@ -10,9 +10,13 @@ $routes->get('/login', 'Home::index'); // Ruta por defecto
 $routes->get('/formulario', 'Home::formulario');
 $routes->get('/coberturas_view', 'Home::coberturas');
 $routes->get('/reportes', 'Home::reportes');
-
+$routes->get('/reset', 'Home::resetpass');
+$routes->get('/error', 'Home::error');
 // fin rutas view
 
+$routes->get('/logout', 'Usuarios::logout');
+$routes->put('/cambio', 'Usuarios::cambiarPassword');
+$routes->post('/login', 'Usuarios::login');
 $routes->get('/usuarios', 'Usuarios::getUsuarios');
 $routes->get('/usuario/(:num)', 'Usuarios::getByIdUsuarios/$1');
 $routes->post('/usuario/alta', 'Usuarios::postUsuarios');
@@ -25,9 +29,9 @@ $routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
 $routes->post('/informe/alta', 'Informes::postInforme');
 $routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
-
-$routes->get('/informe/mail', 'Informes::enviarCorreoPHPMailerPruebaGmail');
-
+$routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
+$routes->get('/mai', 'Informes::enviarCorreoPrueba');
+$routes->get('/descargar-archivo', 'Informes::descargarCarpeta');
 
 $routes->get('/coberturas', 'Coberturas::getCoberturas');
 $routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
@@ -36,13 +40,6 @@ $routes->put('/cobertura/editar/(:num)', 'Coberturas::updateCobertura/$1'); // C
 $routes->delete('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
 
 
-
-$routes->post('/login', 'Usuarios::login');
-$routes->post('/cambio', 'Usuarios::cambiarPassword');
-$routes->get('/descargar-archivo', 'Informes::descargarCarpeta');
-$routes->get('/logout', 'Usuarios::logout');
-$routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
-$routes->get('/mai', 'Informes::enviarCorreoPrueba');
 
 $routes->post('/solicitar-cambio-password', 'Usuarios::solicitarCambioPassword');
 $routes->post('/verificar-codigo-cambio', 'Usuarios::verificarYActualizarPassword');

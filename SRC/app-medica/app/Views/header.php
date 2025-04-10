@@ -6,7 +6,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         * {
@@ -38,6 +38,7 @@
         .menu {
             text-decoration: none;
             color: #ffffff;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -50,8 +51,10 @@
                     <li><a  class="menu" href="formulario">Carga de Informes</a></li>
                     <li ><a class="menu" href="reportes">Reportes</a></li>
                     <li ><a class="menu" href="coberturas_view">Coberturas</a></li>
-                    <li ><a class="menu" href="login">Salir</a></li>
+                    <li ><a class="menu" href="reset">Contraseña</a></li>
+                    <li ><a class="menu" href="logout">Salir</a></li>
                 </ul>
             </nav>
         </div>
+        
     </header>

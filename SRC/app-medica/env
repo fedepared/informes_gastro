@@ -29,13 +29,13 @@
 #--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
-### database.default.hostname = localhost
+database.default.hostname = localhost
 database.default.database = informes_gastro
 database.default.username = root
 database.default.password = 
 database.default.DBDriver = MySQLi
 database.default.DBPrefix =
-database.default.port = 3306 ###
+database.default.port = 3306
 
 # database.tests.hostname = localhost
 # database.tests.database = ci4_test
