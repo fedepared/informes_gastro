@@ -15,7 +15,28 @@ class InformesModel extends Model
     
 
 
-
+    public function getInformesWithFiltros($nombre = null, $fecha_desde = null, $fecha_hasta = null)
+    {
+        $builder = $this->db->table($this->table);
+    
+        // Unimos con la tabla de coberturas si es necesario (asumo que ya lo haces en getInformesWithCoberturas)
+        $builder->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura'); // Ajusta el nombre de la tabla y las claves si es diferente
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre, 'both'); // 'both' para buscar coincidencias en cualquier parte del nombre
+        }
+    
+        if ($fecha_desde && $fecha_hasta) {
+            $builder->where('fecha >=', $fecha_desde);
+            $builder->where('fecha <=', $fecha_hasta);
+        } elseif ($fecha_desde) {
+            $builder->where('fecha >=', $fecha_desde);
+        } elseif ($fecha_hasta) {
+            $builder->where('fecha <=', $fecha_hasta);
+        }
+    
+        return $builder->get()->getResultArray();
+    }
 
 
 

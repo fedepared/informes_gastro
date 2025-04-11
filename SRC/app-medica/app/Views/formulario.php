@@ -101,17 +101,67 @@
             background-color: #009fdf61;
             cursor: not-allowed;
         }
+        .alert {
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            opacity: 1;
+            transition: opacity 0.5s ease, height 0.5s ease, padding 0.5s ease;
+        }
+
+        
+
+        button:disabled {
+            background-color: #009fdf61;
+            cursor: not-allowed;
+        }
+
+  
+    .alert.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .alert.hidden {
+        display: none;
+    }
+    #alert-message {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 100vh;
+    max-width: 90%;
+    text-align: center;
+}
+
+.mensaje-error {
+    color: red;
+    font-size: 0.9em;
+    display: flex
+
+}
 </style>
 
 
+<div id="alert-message" class="alert hidden"></div>
 <div class="formulario">
    <label>(<span class="asterisco">*</span>) Datos obligatorios</label> 
     <h2>Carga de Informe</h2>
-    <form id="formInforme" class="form"  action="<?= site_url('/informe/alta'); ?>" method="POST" enctype="multipart/form-data">
+    <form id="formInforme" class="form" enctype="multipart/form-data">
+
         <div class="datos1">
             <div>
                 <label>Fecha <span class="asterisco">*</span></label>
                 <input type="date" name="fecha" class="required-field">
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
             <div>
                 <label>Tipo de estudio <span class="asterisco">*</span></label>
@@ -119,6 +169,7 @@
                     <option value="VEDA">VIDEOESOFAGASTRODUODENOSCOPIA</option>
                     <option value="VCC">VIDEOCOLONOSCOPIA</option>
                 </select>
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
         </div>
 
@@ -128,6 +179,7 @@
             <div>
                 <label>Nombre y apellido <span class="asterisco">*</span></label>
                 <input type="text" name="nombre_paciente" class="required-field">
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
             <div>
                 <label>Fecha de nacimiento</label>
@@ -143,6 +195,7 @@
             <div>
                 <label>Número de documento <span class="asterisco">*</span></label>
                 <input type="text" name="dni_paciente" class="required-field">
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
         </div>
 
@@ -152,6 +205,7 @@
                 <select id="cobertura" name="id_cobertura" class="required-field">
                     <option value="">Cargando...</option>
                 </select>
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
             <div>
                 <label>Número de afiliado</label>
@@ -163,7 +217,8 @@
             <div>
                 <label>Mail <span class="asterisco">*</span></label>
                 <input type="email" name="mail_paciente" class="required-field">
-                <span id="emailError" style="color: red; font-size: 0.9em; display: none;">El mail no es válido</span>
+                <span id="emailError" class="mensaje-error">El mail no es válido</span>
+                <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
             <div>
                 <label>Médico que envía el estudio</label>
@@ -243,11 +298,139 @@
 
         <label>Subir fotos <span class="asterisco">*</span></label>
         <input type="file" name="archivo[]" accept="image/*" multiple class="required-field">
+        <span class="mensaje-error">Este campo es obligatorio</span>
 
         <button type="submit"  id="btnEnviar" disabled="true" >Enviar</button>
     </form>
 </div>
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formInforme');
+    const requiredFields = form.querySelectorAll('.required-field');
+    const btnEnviar = document.getElementById('btnEnviar');
+
+    // Validación al salir del campo (blur)
+    requiredFields.forEach(field => {
+        const errorSpan = field.parentElement.querySelector('.mensaje-error');
+
+        // Ocultar el mensaje al inicio
+        errorSpan.style.display = 'none';
+
+        // Mostrar error si está vacío al salir del campo
+        field.addEventListener('blur', () => {
+            if (!field.value.trim()) {
+                errorSpan.style.display = 'flex';
+            } else {
+                errorSpan.style.display = 'none';
+            }
+            validarFormulario(); // validar después de tocar el input
+        });
+
+        // Ocultar error al escribir
+        field.addEventListener('input', () => {
+            if (field.value.trim()) {
+                errorSpan.style.display = 'none';
+            }
+            validarFormulario(); // revalidar al escribir
+        });
+    });
+
+    // Validación del email aparte
+    const emailField = form.querySelector('input[name="mail_paciente"]');
+    const emailError = document.getElementById('emailError');
+    emailError.style.display = 'none';
+
+    emailField.addEventListener('blur', () => {
+        const emailValue = emailField.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (emailValue && !emailRegex.test(emailValue)) {
+            emailError.style.display = 'flex';
+        } else {
+            emailError.style.display = 'none';
+        }
+        validarFormulario();
+    });
+
+    emailField.addEventListener('input', () => {
+        emailError.style.display = 'none';
+        validarFormulario();
+    });
+
+    // Habilita o deshabilita el botón según la validez
+    function validarFormulario() {
+        let valid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                valid = false;
+            }
+        });
+
+        if (emailField.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value)) {
+            valid = false;
+        }
+
+        btnEnviar.disabled = !valid;
+    }
+
+    form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevenir el envío tradicional
+    
+    const formData = new FormData(form);
+    const tipoEstudio = form.querySelector('select[name="tipo_informe"]').value;
+
+    // Si el estudio es VCC, eliminar los campos específicos
+    if (tipoEstudio === 'VCC') {
+        formData.delete('estomago');
+        formData.delete('duodeno');
+        formData.delete('esofago');
+    }
+
+    const btnEnviar = document.getElementById('btnEnviar');
+    btnEnviar.disabled = true;
+    const originalText = btnEnviar.innerHTML;
+    btnEnviar.innerHTML = 'Enviando...';
+
+    fetch('<?= site_url('/informe/alta'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async response => {
+        let contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("La respuesta no es JSON. Verifica tu backend.");
+        }
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Respuesta con error del servidor:", data);
+            mostrarAlerta('Error del servidor', 'error');
+        } else if (data.status === 'success') {
+            mostrarAlerta('Formulario creado y enviado correctamente', 'success');
+            form.reset();
+            document.getElementById('vedaInputs').style.display = 'none'; // Ocultar inputs por si se reinicia
+        } else {
+            mostrarAlerta('Error al crear y enviar el formulario', 'error');
+        }
+    })
+    .catch(error => {
+        console.error("Error en la solicitud:", error);
+        mostrarAlerta('Error en la conexión con el servidor', 'error');
+    })
+    .finally(() => {
+        btnEnviar.disabled = false;
+        btnEnviar.innerHTML = originalText;
+    });
+});
+    const coberturaSelect = document.getElementById('cobertura');
+    const afiliadoInput = document.getElementById('afiliado');
+
+    // Aquí podrías continuar con el resto de tu lógica para cargar opciones
+    // Ejemplo: cargarCoberturas();
+});
+
   document.addEventListener('DOMContentLoaded', function () {
     const coberturaSelect = document.getElementById('cobertura');
     const afiliadoInput = document.getElementById('afiliado');
@@ -318,7 +501,7 @@
 
         // Verificamos si es VIDEOESOFAGASTRODUODENOSCOPIA o VIDEOCOLONOSCOPIA
         var vedaInputs = document.getElementById('vedaInputs');
-        if (tipoEstudio === 'VIDEOESOFAGASTRODUODENOSCOPIA') {
+        if (tipoEstudio === 'VEDA') {
             vedaInputs.style.display = 'block'; // Mostrar los inputs
         } else {
             vedaInputs.style.display = 'none'; // Ocultar los inputs
@@ -328,7 +511,7 @@
     // Inicializar el estado del formulario dependiendo del tipo de estudio ya seleccionado (si ya está predefinido)
     window.addEventListener('DOMContentLoaded', function() {
         var tipoEstudio = document.querySelector('select[name="tipo_informe"]').value;
-        if (tipoEstudio === 'VIDEOESOFAGASTRODUODENOSCOPIA') {
+        if (tipoEstudio === 'VEDA') {
             document.getElementById('vedaInputs').style.display = 'block';
         } else {
             document.getElementById('vedaInputs').style.display = 'none';
@@ -391,18 +574,43 @@ function cargarCoberturas() {
     // Llama a la función para cargar las coberturas cuando la página esté lista
     window.addEventListener('DOMContentLoaded', cargarCoberturas);
  
-    document.getElementById('mail_paciente').addEventListener('input', function () {
-    const email = this.value.trim();
-    const emailError = document.getElementById('emailError');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
 
-    if (email !== '' && !emailRegex.test(email)) {
-        emailError.style.display = 'inline';
-    } else {
-        emailError.style.display = 'none';
-    }
+  
 
     validarFormulario(); // Esto asegura que también se actualice el botón Enviar
+    document.addEventListener('DOMContentLoaded', function () {
+    const emailInput = document.querySelector('input[name="mail_paciente"]');
+    const emailError = document.getElementById('emailError');
+
+    emailInput.addEventListener('input', function () {
+        const email = emailInput.value;
+        const isValid = validarEmail(email);
+
+        if (email.length > 0 && !isValid) {
+            emailError.style.display = 'flex';
+        } else {
+            emailError.style.display = 'none';
+        }
+    });
+
+    function validarEmail(email) {
+        // Expresión regular simple para validar un email
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
 });
+function mostrarAlerta(mensaje, tipo = 'error') {
+        const alertDiv = document.getElementById("alert-message");
+
+        alertDiv.textContent = mensaje;
+        alertDiv.className = `alert ${tipo}`; // Aplica clase 'alert success' o 'alert error'
+        alertDiv.classList.remove("hidden");
+
+        clearTimeout(window.alertTimeout);
+        window.alertTimeout = setTimeout(() => {
+            alertDiv.classList.add("hidden");
+        }, 4000);
+    }
 
 </script>
