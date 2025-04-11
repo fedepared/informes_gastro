@@ -67,7 +67,7 @@ class Informes extends BaseController
         $nombre = $this->request->getGet('nombre');
         $fecha_desde = $this->request->getGet('fecha_desde');
         $fecha_hasta = $this->request->getGet('fecha_hasta');
-    
+
         if ($nombre !== null || $fecha_desde !== null || $fecha_hasta !== null) {
             // Si algún parámetro de filtro está presente, aplicamos el filtro
             $resultado = $this->InformesModel->getInformesWithFiltros($nombre, $fecha_desde, $fecha_hasta);
@@ -75,7 +75,7 @@ class Informes extends BaseController
             // Si no hay parámetros de filtro, obtenemos todos los informes con coberturas
             $resultado = $this->InformesModel->getInformesWithCoberturas();
         }
-    
+
         return $this->response->setJSON($resultado);
     }
 
@@ -133,157 +133,156 @@ class Informes extends BaseController
      * Crea un nuevo informe, genera un PDF y lo envía por correo.
      */
 
-     public function postInforme()
-     {
-         try {
-             // Obtener datos del request
-             $fecha = $this->request->getPost('fecha');
-             $tipoInforme = trim($this->request->getPost('tipo_informe'));
-             $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
-             $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
-             $dniPaciente = trim($this->request->getPost('dni_paciente'));
-             $idCobertura = $this->request->getPost('id_cobertura');
-             $mailPaciente = trim($this->request->getPost('mail_paciente'));
-             $medico = trim($this->request->getPost('medico'));
-             $motivo = trim($this->request->getPost('motivo'));
-             $informe = trim($this->request->getPost('informe'));
-             $estomago = trim($this->request->getPost('estomago'));
-             $duodeno = trim($this->request->getPost('duodeno'));
-             $esofago = trim($this->request->getPost('esofago'));
-             $conclusion = trim($this->request->getPost('conclusion'));
-             $terapeutico = trim($this->request->getPost('terapeutico'));
-             $cual = trim($this->request->getPost('cual'));
-             $biopsia = trim($this->request->getPost('biopsia'));
-             $frascos = $this->request->getPost('frascos');
-             $edad = $this->request->getPost('edad');
-             $afiliado = $this->request->getPost('afiliado');
- 
-             // Validar datos requeridos
-             $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
-             foreach ($requiredFields as $field) {
-                 if (empty($this->request->getPost($field))) {
-                     return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
-                 }
-             }
- 
-             // Crear carpetas
-             $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
-             $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
-             $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
-             $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
-             $carpetaInforme = date('Ymd_His');
-             $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
- 
-             if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
-             }
- 
-             // Procesar imágenes
-             $imagenesBase64 = [];
-             $archivos = $this->request->getFileMultiple('archivo');
- 
-             foreach ($archivos as $archivo) {
-                 if ($archivo->isValid() && !$archivo->hasMoved()) {
-                     $allowedMimeTypes = ['image/jpeg', 'image/png'];
-                     if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
-                         return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
-                     }
-                     $contenido = file_get_contents($archivo->getTempName());
-                     $base64 = base64_encode($contenido);
-                     $mime = $archivo->getMimeType();
-                     $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
-                 } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
-                     return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
-                 }
-             }
- 
-             // Cobertura
-             $coberturaData = $this->CoberturasModel->find($idCobertura);
-             if (!$coberturaData) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
-             }
-             $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
- 
-             // Datos para PDF
-             $dataPdf = [
-                 'fecha' => $fecha,
-                 'tipo_informe' => $tipoInforme,
-                 'nombre_paciente' => $nombrePaciente,
-                 'fecha_nacimiento' => $fechaNacimiento,
-                 'dni_paciente' => $dniPaciente,
-                 'nombre_cobertura' => $nombreCobertura,
-                 'mail_paciente' => $mailPaciente,
-                 'medico' => $medico,
-                 'motivo' => $motivo,
-                 'informe' => $informe,
-                 'estomago' => $estomago,
-                 'duodeno' => $duodeno,
-                 'esofago' => $esofago,
-                 'conclusion' => $conclusion,
-                 'terapeutico' => $terapeutico,
-                 'cual' => $cual,
-                 'biopsia' => $biopsia,
-                 'frascos' => $frascos,
-                 'edad' => $edad,
-                 'afiliado' => $afiliado,
-                 'imagenes' => $imagenesBase64,
-             ];
- 
-             // Generar PDF
-             $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
-             $pdfPath = $uploadPathInforme . $pdfFileName;
- 
-             if (!file_exists($pdfPath)) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
-             }
- 
-             // Insertar en base de datos
-             $this->InformesModel->insert([
-                 'nombre_paciente' => $nombrePaciente,
-                 'dni_paciente' => $dniPaciente,
-                 'fecha' => $fecha,
-                 'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
-                 'mail_paciente' => $mailPaciente,
-                 'tipo_informe' => $tipoInforme,
-                 'id_cobertura' => $idCobertura,
-             ]);
- 
-             // Enviar correo
-             $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
-             $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
-             $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
- 
-             if ($resultadoEnvio['success']) {
-                 return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
-             } else {
-                 return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
-             }
- 
-         } catch (\Exception $e) {
-             return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
-         }
-     }
-     
-     
+    public function postInforme()
+    {
+        try {
+            // Obtener datos del request
+            $fecha = $this->request->getPost('fecha');
+            $tipoInforme = trim($this->request->getPost('tipo_informe'));
+            $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
+            $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
+            $dniPaciente = trim($this->request->getPost('dni_paciente'));
+            $idCobertura = $this->request->getPost('id_cobertura');
+            $mailPaciente = trim($this->request->getPost('mail_paciente'));
+            $medico = trim($this->request->getPost('medico'));
+            $motivo = trim($this->request->getPost('motivo'));
+            $informe = trim($this->request->getPost('informe'));
+            $estomago = trim($this->request->getPost('estomago'));
+            $duodeno = trim($this->request->getPost('duodeno'));
+            $esofago = trim($this->request->getPost('esofago'));
+            $conclusion = trim($this->request->getPost('conclusion'));
+            $terapeutico = trim($this->request->getPost('terapeutico'));
+            $cual = trim($this->request->getPost('cual'));
+            $biopsia = trim($this->request->getPost('biopsia'));
+            $frascos = $this->request->getPost('frascos');
+            $edad = $this->request->getPost('edad');
+            $afiliado = $this->request->getPost('afiliado');
 
-     private function generatePDF($data, $cobertura, $outputPath)
-     {
-         $dompdf = new \Dompdf\Dompdf();
-     
-         // Armar bloque HTML de imágenes si existen
-         $imagenesHtml = '';
-         if (!empty($data['imagenes'])) {
-             $imagenesHtml .= "<div class='section'><div class='section-title'>IMÁGENES DEL ESTUDIO</div>";
-             foreach ($data['imagenes'] as $imgBase64) {
-                 $imagenesHtml .= "<div style='margin: 10px 0; text-align: center;'>
-                                     <img src='{$imgBase64}' style='max-width: 450px; max-height: 500px; border: 1px solid #ccc; padding: 4px;'>
-                                   </div>";
-             }
-             $imagenesHtml .= "</div>";
-         }
-     
-         // Armar HTML del PDF
-         $html = "
+            // Validar datos requeridos
+            $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
+            foreach ($requiredFields as $field) {
+                if (empty($this->request->getPost($field))) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
+                }
+            }
+
+            // Crear carpetas
+            $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
+            $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
+            $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
+            $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
+            $carpetaInforme = date('Ymd_His');
+            $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
+
+            if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
+            }
+
+            // Procesar imágenes
+            $imagenesBase64 = [];
+            $archivos = $this->request->getFileMultiple('archivo');
+
+            foreach ($archivos as $archivo) {
+                if ($archivo->isValid() && !$archivo->hasMoved()) {
+                    $allowedMimeTypes = ['image/jpeg', 'image/png'];
+                    if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
+                        return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
+                    }
+                    $contenido = file_get_contents($archivo->getTempName());
+                    $base64 = base64_encode($contenido);
+                    $mime = $archivo->getMimeType();
+                    $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
+                } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
+                }
+            }
+
+            // Cobertura
+            $coberturaData = $this->CoberturasModel->find($idCobertura);
+            if (!$coberturaData) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
+            }
+            $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
+
+            // Datos para PDF
+            $dataPdf = [
+                'fecha' => $fecha,
+                'tipo_informe' => $tipoInforme,
+                'nombre_paciente' => $nombrePaciente,
+                'fecha_nacimiento' => $fechaNacimiento,
+                'dni_paciente' => $dniPaciente,
+                'nombre_cobertura' => $nombreCobertura,
+                'mail_paciente' => $mailPaciente,
+                'medico' => $medico,
+                'motivo' => $motivo,
+                'informe' => $informe,
+                'estomago' => $estomago,
+                'duodeno' => $duodeno,
+                'esofago' => $esofago,
+                'conclusion' => $conclusion,
+                'terapeutico' => $terapeutico,
+                'cual' => $cual,
+                'biopsia' => $biopsia,
+                'frascos' => $frascos,
+                'edad' => $edad,
+                'afiliado' => $afiliado,
+                'imagenes' => $imagenesBase64,
+            ];
+
+            // Generar PDF
+            $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
+            $pdfPath = $uploadPathInforme . $pdfFileName;
+
+            if (!file_exists($pdfPath)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
+            }
+
+            // Insertar en base de datos
+            $this->InformesModel->insert([
+                'nombre_paciente' => $nombrePaciente,
+                'dni_paciente' => $dniPaciente,
+                'fecha' => $fecha,
+                'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
+                'mail_paciente' => $mailPaciente,
+                'tipo_informe' => $tipoInforme,
+                'id_cobertura' => $idCobertura,
+            ]);
+
+            // Enviar correo
+            $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
+            $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
+            $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
+
+            if ($resultadoEnvio['success']) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
+            } else {
+                return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
+        }
+    }
+
+
+
+    private function generatePDF($data, $cobertura, $outputPath)
+    {
+        $dompdf = new \Dompdf\Dompdf();
+
+        // Armar bloque HTML de imágenes si existen
+        $imagenesHtml = '';
+        if (!empty($data['imagenes'])) {
+            $imagenesHtml .= "<div class='section'><div class='section-title'>IMÁGENES DEL ESTUDIO</div>";
+            foreach ($data['imagenes'] as $imgBase64) {
+                $imagenesHtml .= "<div style='margin: 10px 0; text-align: center;'>
+                                             <img src='{$imgBase64}' style='max-width: 450px; max-height: 500px; border: 1px solid #ccc; padding: 4px;'>
+                                         </div>";
+            }
+            $imagenesHtml .= "</div>";
+        }
+
+        // Armar HTML del PDF
+        $html = "
          <html>
          <head>
              <style>
@@ -321,12 +320,12 @@ class Informes extends BaseController
                      PALACIOS LAURA MN 3909 – POCZTER NADIA MN 8075 – MIRANDA ANDREA MN 10974 – GIRARDI MELISA MN 14342
                  </p>
              </div>
-     
+ 
              <div class='section'>
                  <div class='field'><strong>FECHA:</strong> {$data['fecha']}</div>
                  <div class='field'><strong>TIPO DE ESTUDIO:</strong> {$data['tipo_informe']}</div>
              </div>
-     
+ 
              <div class='section'>
                  <div class='section-title'>DATOS DEL PACIENTE</div>
                  <div class='field'><strong>NOMBRE Y APELLIDO:</strong> {$data['nombre_paciente']}</div>
@@ -339,20 +338,23 @@ class Informes extends BaseController
                  <div class='field'><strong>MEDICO SOLICITANTE:</strong> {$data['medico']}</div>
                  <div class='field'><strong>MOTIVO DEL ESTUDIO:</strong> {$data['motivo']}</div>
              </div>
-     
-             <div class='section'>
-                 <div class='section-title'>INFORME</div>
-                 <div class='field'><strong>Informe general:</strong> {$data['informe']}</div>
-                 <div class='field'><strong>Esófago:</strong> {$data['esofago']}</div>
-                 <div class='field'><strong>Estómago:</strong> {$data['estomago']}</div>
-                 <div class='field'><strong>Duodeno:</strong> {$data['duodeno']}</div>
-             </div>
-     
+ 
+       <div class='section'>
+    <div class='section-title'>INFORME</div>
+    " . (strtoupper($data['tipo_informe']) === 'VEDA' ? "
+    <div class='field'><strong>Esófago:</strong> {$data['esofago']}</div>
+    <div class='field'><strong>Estómago:</strong> {$data['estomago']}</div>
+    <div class='field'><strong>Duodeno:</strong> {$data['duodeno']}</div>
+    " : "
+    <div class='field'><strong>Informe general:</strong> {$data['informe']}</div>
+    ") . "
+</div>
+ 
              <div class='section'>
                  <div class='section-title'>CONCLUSIÓN</div>
                  <div class='field'>{$data['conclusion']}</div>
              </div>
-     
+ 
              <div class='section'>
                  <div class='section-title'>TERAPEUTICA / BIOPSIA</div>
                  <div class='field'><strong>¿Se efectuó terapéutica?</strong> {$data['terapeutico']}</div>
@@ -360,14 +362,14 @@ class Informes extends BaseController
                  <div class='field'><strong>¿Se efectuó biopsia?</strong> {$data['biopsia']}</div>
                  <div class='field'><strong>Cantidad de frascos:</strong> {$data['frascos']}</div>
              </div>
-     
+ 
              <div class='section'>
                  <div class='section-title'>PATOLOGÍA</div>
                  <p><strong>Patóloga:</strong> Dra Polina Angélica. Los resultados se retiran a partir de 15 días hábiles en Clínica Santa Isabel, ingreso por calle Lautaro, 1er piso, consultorios externos, con nombre y apellido del paciente. El trámite no es personal.</p>
              </div>
-         
-                {$imagenesHtml}
-
+ 
+             {$imagenesHtml}
+ 
              <div class='section'>
                  <div class='section-title'>INSTRUCCIONES POST ESTUDIO</div>
                  <ol style='font-size: 11px;'>
@@ -380,74 +382,70 @@ class Informes extends BaseController
                      <li>Secretaría de Endoscopias: Belén Chapuis – 1151825634 / secretariaendoscopias@gmail.com</li>
                  </ol>
              </div>
-     
-       
-     
+ 
+ 
              <div class='footer-box'>
                  <p style='text-align:center; font-weight:bold;'>FIRMA DIGITAL Y SELLO</p>
-                 <p><strong>IMPORTANTE:</strong> Es imprescindible contar con este informe para la consulta con la Dra Estrin o con su médico enviador.</p>
+                 <p><strong>IMPORTANTE:</strong> Es imprescindible contar con este informe para la consulta con la Dra Estrin o con su médico de cabecera.</p>
              </div>
          </body>
          </html>
          ";
-     
-         // Renderizado y guardado
-         $dompdf->loadHtml($html);
-         $dompdf->setPaper('A4', 'portrait');
-         $dompdf->render();
-     
-         $nombrePacienteSanitized = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'] ?? 'sin_nombre'));
-         $fechaSanitized = str_replace('-', '_', $data['fecha'] ?? 'sin_fecha');
-         $timestamp = time();
-         $fileName = "informe_{$fechaSanitized}_{$timestamp}.pdf";
-         $filePath = $outputPath . $fileName;
-     
-         file_put_contents($filePath, $dompdf->output());
-     
-         return $fileName;
-     }
-     
 
+        // Renderizado y guardado
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
 
-     private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
-     {
-         $mail = new PHPMailer(true);
- 
-         try {
-             // Configuración del servidor SMTP
-             $mail->isSMTP();
-             $mail->Host       = 'c0170053.ferozo.com';
-             $mail->SMTPAuth   = true;
-             $mail->Username   = 'estudio@dianaestrin.com';
-             $mail->Password   = '@Wurst2024@';
-             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-             $mail->Port       = 465;
-             $mail->CharSet    = 'UTF-8';
- 
-             // Remitente y destinatario
-             $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
-             $mail->addAddress($destinatario);
- 
-             // Contenido del correo
-             $mail->isHTML(true);
-             $mail->Subject = $asunto;
-             $mail->Body    = $mensaje;
- 
-             // Adjuntos
-             foreach ($adjuntos as $adjunto) {
-                 if (file_exists($adjunto)) {
-                     $mail->addAttachment($adjunto);
-                 }
-             }
- 
-             $mail->send();
-             return ['success' => true, 'message' => 'Correo enviado correctamente.'];
- 
-         } catch (Exception $e) {
-             return ['success' => false, 'message' => 'Error al enviar el correo: ' . $mail->ErrorInfo];
-         }
-     }
-     
+        $nombrePacienteSanitized = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'] ?? 'sin_nombre'));
+        $fechaSanitized = str_replace('-', '_', $data['fecha'] ?? 'sin_fecha');
+        $timestamp = time();
+        $fileName = "informe_{$fechaSanitized}_{$timestamp}.pdf";
+        $filePath = $outputPath . $fileName;
+
+        file_put_contents($filePath, $dompdf->output());
+
+        return $fileName;
+    }
+
+    private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
+    {
+        $mail = new PHPMailer(true);
+
+        try {
+            // Configuración del servidor SMTP
+            $mail->isSMTP();
+            $mail->Host       = 'c0170053.ferozo.com';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'estudio@dianaestrin.com';
+            $mail->Password   = '@Wurst2024@';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
+            $mail->CharSet    = 'UTF-8';
+
+            // Remitente y destinatario
+            $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
+            $mail->addAddress($destinatario);
+
+            // Contenido del correo
+            $mail->isHTML(true);
+            $mail->Subject = $asunto;
+            $mail->Body    = $mensaje;
+
+            // Adjuntos
+            foreach ($adjuntos as $adjunto) {
+                if (file_exists($adjunto)) {
+                    $mail->addAttachment($adjunto);
+                }
+            }
+
+            $mail->send();
+            return ['success' => true, 'message' => 'Correo enviado correctamente.'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => 'Error al enviar el correo: ' . $mail->ErrorInfo];
+        }
+    }
+
 
     // ... (función descargarCarpeta) ...
 
