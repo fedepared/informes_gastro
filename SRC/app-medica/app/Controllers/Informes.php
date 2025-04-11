@@ -5,6 +5,7 @@ namespace App\Controllers;
 use CodeIgniter\RESTful\ResourceController;
 use App\Models\InformesModel;
 use App\Controllers\Coberturas;
+use App\Models\CoberturasModel;
 use Dompdf\Dompdf;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -13,11 +14,13 @@ use ZipArchive;
 
 class Informes extends BaseController
 {
-    private $InformesModel;
+    protected $InformesModel;
+    protected $CoberturasModel;
 
     public function __construct()
     {
         $this->InformesModel = new InformesModel();
+        $this->CoberturasModel = new CoberturasModel();
     }
     function enviarCorreoPrueba()
     {
@@ -133,8 +136,6 @@ class Informes extends BaseController
      public function postInforme()
      {
          try {
-             echo "<h3>INICIANDO postInforme</h3>";
-     
              // Obtener datos del request
              $fecha = $this->request->getPost('fecha');
              $tipoInforme = trim($this->request->getPost('tipo_informe'));
@@ -156,61 +157,53 @@ class Informes extends BaseController
              $frascos = $this->request->getPost('frascos');
              $edad = $this->request->getPost('edad');
              $afiliado = $this->request->getPost('afiliado');
-     
+ 
              // Validar datos requeridos
              $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
              foreach ($requiredFields as $field) {
                  if (empty($this->request->getPost($field))) {
-                     echo "Falta el campo: $field<br>";
+                     return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
                  }
              }
-     
-             // Crear carpetas (aunque no se guarden imágenes ahora)
+ 
+             // Crear carpetas
              $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
              $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
              $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
              $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
              $carpetaInforme = date('Ymd_His');
              $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
-     
+ 
              if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
-                 echo "No se pudo crear carpeta: $uploadPathInforme";
-                 exit;
+                 return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
              }
-     
+ 
              // Procesar imágenes
              $imagenesBase64 = [];
              $archivos = $this->request->getFileMultiple('archivo');
-     
+ 
              foreach ($archivos as $archivo) {
                  if ($archivo->isValid() && !$archivo->hasMoved()) {
                      $allowedMimeTypes = ['image/jpeg', 'image/png'];
                      if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
-                         echo "Tipo de archivo no permitido: " . $archivo->getClientMimeType();
-                         exit;
+                         return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
                      }
-     
                      $contenido = file_get_contents($archivo->getTempName());
                      $base64 = base64_encode($contenido);
                      $mime = $archivo->getMimeType();
                      $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
-                 } else {
-                     echo "Error al procesar imagen: " . $archivo->getErrorString();
-                     exit;
+                 } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
+                     return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
                  }
              }
-     
+ 
              // Cobertura
-             $coberturaModel = new \App\Models\CoberturasModel();
-             $coberturaData = $coberturaModel->find($idCobertura);
-     
+             $coberturaData = $this->CoberturasModel->find($idCobertura);
              if (!$coberturaData) {
-                 echo "Cobertura no encontrada para ID: $idCobertura";
-                 exit;
+                 return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
              }
-     
              $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
-     
+ 
              // Datos para PDF
              $dataPdf = [
                  'fecha' => $fecha,
@@ -235,45 +228,39 @@ class Informes extends BaseController
                  'afiliado' => $afiliado,
                  'imagenes' => $imagenesBase64,
              ];
-     
-             echo "<h3>Datos del PDF</h3>";
-             echo "<pre>";
-             print_r($dataPdf);
-             echo "</pre>";
-     
+ 
              // Generar PDF
              $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
              $pdfPath = $uploadPathInforme . $pdfFileName;
-             echo "PDF generado en: $pdfPath<br>";
-     
+ 
              if (!file_exists($pdfPath)) {
-                 echo "El PDF no fue generado.";
-                 exit;
+                 return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
              }
-     
+ 
              // Insertar en base de datos
              $this->InformesModel->insert([
                  'nombre_paciente' => $nombrePaciente,
                  'dni_paciente' => $dniPaciente,
                  'fecha' => $fecha,
-                 'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme,
+                 'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
                  'mail_paciente' => $mailPaciente,
                  'tipo_informe' => $tipoInforme,
                  'id_cobertura' => $idCobertura,
              ]);
-     
+ 
              // Enviar correo
              $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
              $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
              $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
-     
-             echo "<h3>Resultado del envío de correo</h3>";
-             echo $resultadoEnvio;
-             exit;
-     
+ 
+             if ($resultadoEnvio['success']) {
+                 return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
+             } else {
+                 return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
+             }
+ 
          } catch (\Exception $e) {
-             echo "ERROR en postInforme: " . $e->getMessage();
-             exit;
+             return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
          }
      }
      
@@ -422,19 +409,11 @@ class Informes extends BaseController
      
 
 
-
      private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
      {
          $mail = new PHPMailer(true);
-        
+ 
          try {
-             echo "<h3>INICIANDO ENVÍO DE CORREO</h3>";
-             echo "Destinatario: $destinatario<br>";
-             echo "Asunto: $asunto<br>";
-             echo "Adjuntos:<br><pre>";
-             print_r($adjuntos);
-             echo "</pre>";
-     
              // Configuración del servidor SMTP
              $mail->isSMTP();
              $mail->Host       = 'c0170053.ferozo.com';
@@ -443,32 +422,29 @@ class Informes extends BaseController
              $mail->Password   = '@Wurst2024@';
              $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
              $mail->Port       = 465;
-             $mail->CharSet = 'UTF-8';
+             $mail->CharSet    = 'UTF-8';
+ 
              // Remitente y destinatario
              $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
              $mail->addAddress($destinatario);
-     
+ 
              // Contenido del correo
              $mail->isHTML(true);
              $mail->Subject = $asunto;
              $mail->Body    = $mensaje;
-     
+ 
              // Adjuntos
              foreach ($adjuntos as $adjunto) {
                  if (file_exists($adjunto)) {
                      $mail->addAttachment($adjunto);
-                     echo "Adjuntando archivo: $adjunto<br>";
-                 } else {
-                     echo "⚠️ Archivo no encontrado: $adjunto<br>";
                  }
              }
-     
+ 
              $mail->send();
-             echo "<strong>✅ Correo enviado correctamente.</strong><br>";
-             return 'Correo enviado correctamente.';
+             return ['success' => true, 'message' => 'Correo enviado correctamente.'];
+ 
          } catch (Exception $e) {
-             echo "<strong>❌ Error al enviar el correo:</strong> {$mail->ErrorInfo}<br>";
-             return "Error al enviar el correo: {$mail->ErrorInfo}";
+             return ['success' => false, 'message' => 'Error al enviar el correo: ' . $mail->ErrorInfo];
          }
      }
      
