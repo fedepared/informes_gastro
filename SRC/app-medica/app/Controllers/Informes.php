@@ -98,31 +98,18 @@ class Informes extends BaseController
             return $this->response->setStatusCode(404)->setBody('Directorio no encontrado.');
         }
 
-        $nombreZip = 'informe_completo_' . time() . '.zip';
-        $zipPath = WRITEPATH . $nombreZip;
+        // Buscar el archivo PDF dentro del directorio
+        $archivosPdf = glob($rutaCompleta . '/*.pdf');
 
-        $zip = new \ZipArchive();
-        if ($zip->open($zipPath, \ZipArchive::CREATE) !== true) {
-            return $this->response->setStatusCode(500)->setBody('No se pudo crear el ZIP.');
+        if (empty($archivosPdf)) {
+            return $this->response->setStatusCode(404)->setBody('Archivo PDF no encontrado en el directorio.');
         }
 
-        $dir = new \RecursiveDirectoryIterator($rutaCompleta);
-        $iterator = new \RecursiveIteratorIterator($dir);
+        // Se asume que solo hay un archivo PDF por informe
+        $archivoPdf = $archivosPdf[0];
+        $nombreArchivo = basename($archivoPdf);
 
-        foreach ($iterator as $archivo) {
-            if ($archivo->isFile()) {
-                $rutaReal = $archivo->getRealPath();
-
-                // Solo se incluye desde la carpeta final
-                $rutaInterna = substr($rutaReal, strlen($rutaCompleta) + 1);
-
-                $zip->addFile($rutaReal, $rutaInterna);
-            }
-        }
-
-        $zip->close();
-
-        return $this->response->download($zipPath, null)->setFileName($nombreZip);
+        return $this->response->download($archivoPdf, null)->setFileName($nombreArchivo);
     }
 
 
@@ -262,8 +249,45 @@ class Informes extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
         }
     }
-
-
+    public function reenviarInformePorId($idInforme)
+    {
+        $informe = $this->InformesModel->find($idInforme);
+    
+        if (!$informe) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Informe no encontrado con el ID: ' . $idInforme,
+            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+        }
+    
+        $mailPaciente = trim($informe['mail_paciente']);
+        $nombrePaciente = trim($informe['nombre_paciente']);
+    
+        // ✅ Usar ruta exacta desde la base de datos
+        $rutaPdfAbsoluta = FCPATH . str_replace('\\', '/', $informe['url_archivo']);
+    
+        if (!file_exists($rutaPdfAbsoluta)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'No se encontró el archivo PDF en la ruta esperada.',
+                'ruta_pdf' => $rutaPdfAbsoluta,
+            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+        }
+    
+        $asunto = 'Reenvío de Informe Médico para ' . $nombrePaciente;
+        $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se le reenvía su informe médico.</p>';
+    
+        $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$rutaPdfAbsoluta]);
+    
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Correo reenviado para el informe con ID: ' . $idInforme,
+            'ruta_pdf' => $rutaPdfAbsoluta,
+            'email_status' => $resultadoEnvio,
+        ]);
+    }
+    
+    
 
     private function generatePDF($data, $cobertura, $outputPath)
     {
