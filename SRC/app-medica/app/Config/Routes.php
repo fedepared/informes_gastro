@@ -43,3 +43,4 @@ $routes->post('/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
 
 $routes->post('/solicitar-cambio-password', 'Usuarios::solicitarCambioPassword');
 $routes->post('/verificar-codigo-cambio', 'Usuarios::verificarYActualizarPassword');
+$routes->get('/informes-paginado', 'Informes::getInformesPaginado');

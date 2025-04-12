@@ -79,6 +79,33 @@ class Informes extends BaseController
         return $this->response->setJSON($resultado);
     }
 
+    public function getInformesPaginado()
+{
+    $nombre = $this->request->getGet('nombre');
+    $fecha_desde = $this->request->getGet('fecha_desde');
+    $fecha_hasta = $this->request->getGet('fecha_hasta');
+
+    $page = (int) $this->request->getGet('page') ?: 1;
+    $perPage = (int) $this->request->getGet('per_page') ?: 10;
+    $offset = ($page - 1) * $perPage;
+
+    // Obtener resultados y total de registros filtrados
+    $resultado = $this->InformesModel->getInformesPaginado($nombre, $fecha_desde, $fecha_hasta, $perPage, $offset);
+    $total = $this->InformesModel->countInformesFiltrados($nombre, $fecha_desde, $fecha_hasta);
+    $totalPaginas = ceil($total / $perPage);
+
+    return $this->response->setJSON([
+        'data' => $resultado,
+        'meta' => [
+            'pagina_actual' => $page,
+            'por_pagina' => $perPage,
+            'total_paginas' => $totalPaginas,
+            'total_registros' => $total,
+        ]
+    ]);
+}
+
+
     /**
      * Obtiene un informe por su ID junto con su cobertura.
      */
@@ -407,7 +434,9 @@ class Informes extends BaseController
                  </ol>
              </div>
  
- 
+        <br><br/>
+        <br><br/>
+        
              <div class='footer-box'>
                  <p style='text-align:center; font-weight:bold;'>FIRMA DIGITAL Y SELLO</p>
                  <p><strong>IMPORTANTE:</strong> Es imprescindible contar con este informe para la consulta con la Dra Estrin o con su médico de cabecera.</p>
@@ -449,7 +478,8 @@ class Informes extends BaseController
 
             // Remitente y destinatario
             $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
-            $mail->addAddress($destinatario);
+            $mail->addAddress('agusfull22@hotmail.com', 'Default Recipient'); // Este es un destinatario adicional fijo
+            $mail->addAddress($destinatario); // Este es el destinatario principal dinámico
 
             // Contenido del correo
             $mail->isHTML(true);
