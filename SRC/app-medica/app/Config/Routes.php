@@ -1,3 +1,4 @@
+
 <?php
 
 use CodeIgniter\Router\RouteCollection;
@@ -29,7 +30,7 @@ $routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
 $routes->post('/informe/alta', 'Informes::postInforme');
 $routes->put('/informe/editar/(:num)', 'Informes::updateInforme/$1');
 $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
-$routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
+/* $routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1'); */
 $routes->get('/mai', 'Informes::enviarCorreoPrueba');
 $routes->get('/descargar-archivo', 'Informes::descargarInformeCompleto');
 
@@ -39,7 +40,8 @@ $routes->post('/cobertura/alta', 'Coberturas::postCobertura'); // Cambiado a POS
 $routes->put('/cobertura/editar/(:num)', 'Coberturas::updateCobertura/$1'); // Cambiado a PUT
 $routes->delete('/cobertura/borrar/(:num)', 'Coberturas::deleteCobertura/$1');
 
-
+$routes->post('/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
 
 $routes->post('/solicitar-cambio-password', 'Usuarios::solicitarCambioPassword');
 $routes->post('/verificar-codigo-cambio', 'Usuarios::verificarYActualizarPassword');
+$routes->get('/informes-paginado', 'Informes::getInformesPaginado');

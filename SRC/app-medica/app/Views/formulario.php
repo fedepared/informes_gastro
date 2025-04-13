@@ -217,7 +217,7 @@
             <div>
                 <label>Mail <span class="asterisco">*</span></label>
                 <input type="email" name="mail_paciente" class="required-field">
-                <span id="emailError" class="mensaje-error">El mail no es válido</span>
+            
                 <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
             <div>
@@ -234,8 +234,11 @@
         </div>
 
         <h3>Informe del estudio</h3>
-        <label>Informe</label>
-        <textarea name="informe"></textarea><br>
+        <div id="inputinforme" style="display: none;">
+
+            <label>Informe</label>
+            <textarea name="informe"></textarea><br>
+        </div>
         <div class="datos1">
     
 </div>
@@ -298,12 +301,38 @@
 
         <label>Subir fotos <span class="asterisco">*</span></label>
         <input type="file" name="archivo[]" accept="image/*" multiple class="required-field">
-        <span class="mensaje-error">Este campo es obligatorio</span>
+        
 
         <button type="submit"  id="btnEnviar" disabled="true" >Enviar</button>
     </form>
 </div>
 <script>
+
+document.addEventListener("DOMContentLoaded", function () {
+    const tipoEstudioSelect = document.querySelector('select[name="tipo_informe"]');
+    const inputInforme = document.getElementById("inputinforme");
+
+    function actualizarVisibilidadInforme() {
+      const valorSeleccionado = tipoEstudioSelect.value;
+
+      if (valorSeleccionado === "VCC") {
+        inputInforme.style.display = "block";
+      } else if (valorSeleccionado === "VEDA") {
+        inputInforme.style.display = "none";
+      }
+    }
+
+    // Ejecutar al cargar la página por si hay un valor preseleccionado
+    actualizarVisibilidadInforme();
+
+    // Ejecutar cada vez que cambia el valor del select
+    tipoEstudioSelect.addEventListener("change", actualizarVisibilidadInforme);
+  });
+    function esEmailValido(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('formInforme');
     const requiredFields = form.querySelectorAll('.required-field');
@@ -337,25 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Validación del email aparte
     const emailField = form.querySelector('input[name="mail_paciente"]');
-    const emailError = document.getElementById('emailError');
-    emailError.style.display = 'none';
-
-    emailField.addEventListener('blur', () => {
-        const emailValue = emailField.value.trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (emailValue && !emailRegex.test(emailValue)) {
-            emailError.style.display = 'flex';
-        } else {
-            emailError.style.display = 'none';
-        }
-        validarFormulario();
-    });
-
-    emailField.addEventListener('input', () => {
-        emailError.style.display = 'none';
-        validarFormulario();
-    });
+    
 
     // Habilita o deshabilita el botón según la validez
     function validarFormulario() {
@@ -386,6 +397,9 @@ document.addEventListener('DOMContentLoaded', function () {
         formData.delete('duodeno');
         formData.delete('esofago');
     }
+    if(tipoEstudio === 'VEDA') {
+        formData.delete('informe');
+    }
 
     const btnEnviar = document.getElementById('btnEnviar');
     btnEnviar.disabled = true;
@@ -396,29 +410,23 @@ document.addEventListener('DOMContentLoaded', function () {
         method: 'POST',
         body: formData
     })
-    .then(async response => {
-        let contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("La respuesta no es JSON. Verifica tu backend.");
-        }
+    .then(response => response.json())
+        .then(data => {
+            
+            mostrarAlerta('Fomulario creado con éxito','success');
+            form.reset(); // Opcional: reiniciar el formulario
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error("Respuesta con error del servidor:", data);
-            mostrarAlerta('Error del servidor', 'error');
-        } else if (data.status === 'success') {
-            mostrarAlerta('Formulario creado y enviado correctamente', 'success');
-            form.reset();
-            document.getElementById('vedaInputs').style.display = 'none'; // Ocultar inputs por si se reinicia
-        } else {
-            mostrarAlerta('Error al crear y enviar el formulario', 'error');
-        }
-    })
-    .catch(error => {
-        console.error("Error en la solicitud:", error);
-        mostrarAlerta('Error en la conexión con el servidor', 'error');
-    })
+            if (!data.success) {
+                mostrarAlerta('Error al crear el formulario','error');
+            } else {
+                btnEnviar.disabled = true;
+            }
+        })
+        .catch(error => {
+            
+            mostrarAlerta('Error al enviar el formulario: ' + error.message,'error');
+        })
+    
     .finally(() => {
         btnEnviar.disabled = false;
         btnEnviar.innerHTML = originalText;
@@ -503,7 +511,9 @@ document.addEventListener('DOMContentLoaded', function () {
         var vedaInputs = document.getElementById('vedaInputs');
         if (tipoEstudio === 'VEDA') {
             vedaInputs.style.display = 'block'; // Mostrar los inputs
+            
         } else {
+           
             vedaInputs.style.display = 'none'; // Ocultar los inputs
         }
     });
@@ -581,18 +591,7 @@ function cargarCoberturas() {
     validarFormulario(); // Esto asegura que también se actualice el botón Enviar
     document.addEventListener('DOMContentLoaded', function () {
     const emailInput = document.querySelector('input[name="mail_paciente"]');
-    const emailError = document.getElementById('emailError');
-
-    emailInput.addEventListener('input', function () {
-        const email = emailInput.value;
-        const isValid = validarEmail(email);
-
-        if (email.length > 0 && !isValid) {
-            emailError.style.display = 'flex';
-        } else {
-            emailError.style.display = 'none';
-        }
-    });
+   
 
     function validarEmail(email) {
         // Expresión regular simple para validar un email

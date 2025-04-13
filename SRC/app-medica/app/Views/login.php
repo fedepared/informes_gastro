@@ -296,7 +296,7 @@ function confirmarRecuperacion() {
         const usuarioVal = usuario.value;
         const passwordVal = password.value;
 
-        clearTimeout(window.alertTimeout);
+        clearTimeout(window.alertTimeout); 
 
         fetch('<?= site_url('login'); ?>', {
             method: "POST",

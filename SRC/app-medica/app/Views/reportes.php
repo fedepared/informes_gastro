@@ -292,6 +292,15 @@ td button:hover {
     .alert.hidden {
         display: none;
     }
+    .spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 </style>
 
 <div id="mensaje-alerta" class="alert hidden"></div>
@@ -404,7 +413,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 let reportes = [];
 let currentPage = 1;
-let itemsPerPage = 5; // Cambia este valor para ajustar la cantidad de elementos por página
+let itemsPerPage = 31; // Cambia este valor para ajustar la cantidad de elementos por página
 
 function fetchInformes() {
    
@@ -469,12 +478,13 @@ function mostrarPagina() {
                 </button>
                 <div class="tooltip-text">Descargar Reporte</div>
             </div>
-            <div class="tooltip">
-                <button onclick="reenviarReporte(${reporte.id_informe})">
-                    <span class="material-icons">send</span>
-                </button>
-                <div class="tooltip-text">Reenviar Reporte</div>
-            </div>
+          <div class="tooltip">
+    <button onclick="reenviarReporte(${reporte.id_informe}, this)">
+        <span class="material-icons">send</span>
+    </button>
+    <div class="tooltip-text">Reenviar Reporte</div>
+</div>
+
             <div class="tooltip">
                 <button onclick='abrirModalEditar(${JSON.stringify(reporte)})'>
     <span class="material-icons">edit</span>
@@ -502,34 +512,31 @@ function changePage(direction) {
 
 // 🔹 Función para filtrar la tabla por nombre y rango de fecha
 function filtrarTabla() {
-    let filtroNombre = document.getElementById("nombre").value.toLowerCase();
-    let fechaInicio = document.getElementById("start_date").value;
-    let fechaFin = document.getElementById("end_date").value;
+    const nombre = document.getElementById("nombre").value;
+    const startDate = document.getElementById("start_date").value;
+    const endDate = document.getElementById("end_date").value;
 
-    let filas = document.querySelectorAll("table tbody tr");
+    // Armamos la URL con los parámetros (puedes usar POST si prefieres)
+    const params = new URLSearchParams();
+    if (nombre) params.append("nombre", nombre);
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
 
-    filas.forEach(fila => {
-        let nombre = fila.cells[0].textContent.toLowerCase();
-        let fecha = fila.cells[1].textContent;
-
-        let cumpleFiltroNombre = nombre.includes(filtroNombre);
-        let cumpleFiltroFecha = true;
-
-        if (fechaInicio && fechaFin) {
-            cumpleFiltroFecha = fecha >= fechaInicio && fecha <= fechaFin;
-        } else if (fechaInicio) {
-            cumpleFiltroFecha = fecha >= fechaInicio;
-        } else if (fechaFin) {
-            cumpleFiltroFecha = fecha <= fechaFin;
-        }
-
-        if (cumpleFiltroNombre && cumpleFiltroFecha) {
-            fila.style.display = "";
-        } else {
-            fila.style.display = "none";
-        }
-    });
+    fetch(`<?= site_url('informes'); ?>?${params.toString()}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        reportes = data;
+        currentPage = 1;
+        updatePagination();
+    })
+    .catch(error => console.error("Error al filtrar:", error));
 }
+
 
 function descargarReporte(rutaRelativa) { 
     const url = '<?= site_url('/descargar-archivo?ruta='); ?>' + encodeURIComponent(rutaRelativa);
@@ -566,21 +573,45 @@ function descargarReporte(rutaRelativa) {
 }
 
 
+function reenviarReporte(id, buttonElement) {
+    const url = '<?= site_url('/reenviar-informe/'); ?>' + id;
 
-function reenviarReporte(id) {
-    fetch('<?= site_url('/informe/reenviar-informe/'); ?>' + id)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    mostrarMensaje("success", "Informe reenviado correctamente");
-                } else {
-                    mostrarMensaje("error", "No se pudo reenviar el informe");
-                }
-            })
-            .catch(error => {
-                mostrarMensaje("error", "Error al reenviar el informe");
-                
-            });
+    // Obtener el ícono dentro del botón
+    const icon = buttonElement.querySelector('span');
+
+    // Guardar el ícono original
+    const originalIcon = icon.innerHTML;
+
+    // Mostrar spinner y desactivar botón
+    icon.innerHTML = 'autorenew'; // spinner material icon
+    icon.classList.add('spin'); // aplicamos clase CSS para rotar
+    buttonElement.disabled = true;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            mostrarMensaje("success", "Se reenvió el informe correctamente");
+        } else {
+            mostrarMensaje("error", "Error: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        mostrarMensaje("error", "Error al reenviar el informe");
+    })
+    .finally(() => {
+        // Restaurar estado original
+        icon.innerHTML = originalIcon;
+        icon.classList.remove('spin');
+        buttonElement.disabled = false;
+    });
 }
 
 

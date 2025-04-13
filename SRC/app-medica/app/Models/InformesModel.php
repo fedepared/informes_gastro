@@ -39,10 +39,56 @@ class InformesModel extends Model
     }
 
 
+    public function countInformesFiltrados($nombre = null, $desde = null, $hasta = null)
+    {
+        $builder = $this->select('COUNT(*) as total');
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre);
+        }
+    
+        if ($desde) {
+            $builder->where('fecha >=', $desde);
+        }
+    
+        if ($hasta) {
+            $builder->where('fecha <=', $hasta);
+        }
+    
+        return $builder->get()->getRow()->total;
+    }
+    
 
-
-
-
+    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null, $limit = 10, $offset = 0)
+    {
+        $builder = $this->select('informes.*, coberturas.nombre_cobertura')
+            ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura', 'left');
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre);
+        }
+    
+        if ($desde) {
+            $builder->where('fecha >=', $desde);
+        }
+    
+        if ($hasta) {
+            $builder->where('fecha <=', $hasta);
+        }
+    
+        // Asegurarse de que limit y offset sean enteros
+        $limit = (int) $limit;
+        $offset = (int) $offset;
+    
+        return $builder
+            ->orderBy('fecha', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get()
+            ->getResult();
+    }
+    
+    
 
 
 
