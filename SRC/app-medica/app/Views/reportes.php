@@ -529,40 +529,39 @@ function filtrarTabla() {
     .catch(error => console.error("Error al filtrar:", error));
 }
 
-
-function descargarReporte(rutaRelativa) { 
-    const url = '<?= site_url('/descargar-archivo?ruta='); ?>' + encodeURIComponent(rutaRelativa);
+function descargarReporte(rutaRelativa) {
+    const baseUrl = "<?= site_url('descargar-archivo') ?>";
+    const url = `${baseUrl}?ruta=${encodeURIComponent(rutaRelativa)}`;
 
     fetch(url)
-        .then(async response => {
-            const contentType = response.headers.get('Content-Type');
-
-            if (contentType && contentType.includes('text')) {
-                const errorText = await response.text();
-                mostrarMensaje("error", "Error al descargar: " + errorText);
-                throw new Error(errorText);
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(texto => {
+                    mostrarMensaje("error", "Error al descargar: " + texto);
+                });
             }
+            return response.blob().then(blob => {
+                const urlBlob = window.URL.createObjectURL(blob);
 
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
+                // Extraer carpetas intermedias
+                const partes = rutaRelativa.split('/');
+                const nombreDescarga = `${partes[1]}-${partes[2]}.pdf`;
 
-            // Quitar 'uploads/' del principio si existe
-            let cleanRuta = rutaRelativa.startsWith('uploads/') ? rutaRelativa.substring(8) : rutaRelativa;
-
-            // Reemplazar las barras por guiones bajos o como quieras unir los nombres
-            const nombreArchivo = cleanRuta.replace(/\//g, '_') + '.zip';
-
-            link.download = nombreArchivo;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+                const a = document.createElement('a');
+                a.href = urlBlob;
+                a.download = nombreDescarga;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(urlBlob);
+            });
         })
         .catch(error => {
             mostrarMensaje("error", "Ocurrió un error al intentar descargar el archivo.");
+            console.error("Error:", error);
         });
 }
+
 
 
 function reenviarReporte(id, buttonElement) {

@@ -117,28 +117,34 @@ class Informes extends BaseController
 
     public function descargarInformeCompleto()
     {
-        $rutaRelativa = $this->request->getGet('ruta');
+        $rutaRelativaConExtension = $this->request->getGet('ruta');
 
-        $rutaCompleta = FCPATH . $rutaRelativa;
+        echo "Ruta recibida: " . $rutaRelativaConExtension; // Para depuración
+        log_message('debug', 'Ruta recibida (GET): ' . $rutaRelativaConExtension);
 
-        if (!$rutaRelativa || !is_dir($rutaCompleta)) {
-            return $this->response->setStatusCode(404)->setBody('Directorio no encontrado.');
+        if (!$rutaRelativaConExtension) {
+            log_message('error', 'No se proporcionó la ruta del archivo para descargar.');
+            return $this->response->setStatusCode(400)->setBody('Se requiere la ruta del archivo.');
         }
 
-        // Buscar el archivo PDF dentro del directorio
-        $archivosPdf = glob($rutaCompleta . '/*.pdf');
+        $rutaCompletaConExtension = FCPATH . $rutaRelativaConExtension;
+        log_message('debug', 'Ruta completa construida: ' . $rutaCompletaConExtension);
 
-        if (empty($archivosPdf)) {
-            return $this->response->setStatusCode(404)->setBody('Archivo PDF no encontrado en el directorio.');
+        if (!file_exists($rutaCompletaConExtension)) {
+            log_message('error', 'Archivo no encontrado en la ruta: ' . $rutaCompletaConExtension);
+            return $this->response->setStatusCode(404)->setBody('Archivo no encontrado.');
         }
 
-        // Se asume que solo hay un archivo PDF por informe
-        $archivoPdf = $archivosPdf[0];
-        $nombreArchivo = basename($archivoPdf);
+        $nombreArchivo = basename($rutaCompletaConExtension);
+        log_message('debug', 'Nombre del archivo para descarga: ' . $nombreArchivo);
 
-        return $this->response->download($archivoPdf, null)->setFileName($nombreArchivo);
+        try {
+            return $this->response->download($rutaCompletaConExtension, null)->setFileName($nombreArchivo);
+        } catch (\Exception $e) {
+            log_message('critical', 'Error al intentar descargar el archivo: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setBody('Error al descargar el archivo.');
+        }
     }
-
 
 
 
