@@ -317,11 +317,11 @@ td button:hover {
             </div>
 
             <div>
-                <label for="start_date">Desde:</label>
-                <input type="date" name="start_date" id="start_date">
+                <label for="fecha_desde">Desde:</label>
+                <input type="date" name="fecha_desde" id="fecha_desde">
 
-                <label for="end_date">Hasta:</label>
-                <input type="date" name="end_date" id="end_date">
+                <label for="fecha_hasta">Hasta:</label>
+                <input type="date" name="fecha_hasta" id="fecha_hasta">
 
                 <button type="submit">Filtrar</button>
             </div>
@@ -412,57 +412,50 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 let reportes = [];
-let currentPage = 1;
-let itemsPerPage = 31; // Cambia este valor para ajustar la cantidad de elementos por página
-
+let currentPage = 1; // Cambia este valor para ajustar la cantidad de elementos por página
+let totalPages = 1;
+let itemsPerPage = 20;
 function fetchInformes() {
-   
+    const params = new URLSearchParams({
+        page: currentPage,
+        per_page: itemsPerPage
+    });
 
-    fetch('<?= site_url('informes'); ?>', {
+    fetch(`<?= site_url('informes-paginado'); ?>?${params.toString()}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-       
-        reportes = data;
-        updatePagination(); // Inicializa la paginación al recibir los datos
+        reportes = data.data;
+        currentPage = parseInt(data.meta.pagina_actual);
+        totalPages = parseInt(data.meta.total_paginas);
+        updatePagination();
     })
     .catch(error => console.error("Error en la solicitud:", error));
 }
 
 function updatePagination() {
-    let totalPages = Math.ceil(reportes.length / itemsPerPage);
     document.getElementById("pageNumber").textContent = currentPage;
 
-    // Deshabilita los botones cuando sea necesario
+    // Deshabilitar botones si estamos en el inicio o final
     document.getElementById("prevPage").disabled = currentPage === 1;
-    document.getElementById("nextPage").disabled = currentPage === totalPages || totalPages === 0;
+    document.getElementById("nextPage").disabled = currentPage === totalPages;
 
     mostrarPagina();
 }
-
 function mostrarPagina() {
     let tbody = document.querySelector("table tbody");
-    tbody.innerHTML = ""; // Limpiar la tabla
+    tbody.innerHTML = "";
 
-    let start = (currentPage - 1) * itemsPerPage;
-    let end = start + itemsPerPage;
-    let datosPagina = reportes.slice(start, end);
-
-    if (datosPagina.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5">No hay reportes disponibles.</td></tr>`;
+    if (reportes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7">No hay reportes disponibles.</td></tr>`;
         return;
     }
 
-    datosPagina.forEach(reporte => {
+    reportes.forEach(reporte => {
         let fila = `
             <tr>
                 <td>${reporte.nombre_paciente || ""}</td>
@@ -471,27 +464,26 @@ function mostrarPagina() {
                 <td>${reporte.mail_paciente || ""}</td>
                 <td>${reporte.tipo_informe || ""}</td>
                 <td>${reporte.nombre_cobertura || ""}</td>
-                 <td>
-            <div class="tooltip">
-                <button onclick="descargarReporte('${reporte.url_archivo}')">
-                    <span class="material-icons">download</span>
-                </button>
-                <div class="tooltip-text">Descargar Reporte</div>
-            </div>
-          <div class="tooltip">
-    <button onclick="reenviarReporte(${reporte.id_informe}, this)">
-        <span class="material-icons">send</span>
-    </button>
-    <div class="tooltip-text">Reenviar Reporte</div>
-</div>
-
-            <div class="tooltip">
-                <button onclick='abrirModalEditar(${JSON.stringify(reporte)})'>
-    <span class="material-icons">edit</span>
-</button>
-                <div class="tooltip-text">Editar Reporte</div>
-            </div>
-        </td>
+                <td>
+                    <div class="tooltip">
+                        <button onclick="descargarReporte('${reporte.url_archivo}')">
+                            <span class="material-icons">download</span>
+                        </button>
+                        <div class="tooltip-text">Descargar Reporte</div>
+                    </div>
+                    <div class="tooltip">
+                        <button onclick="reenviarReporte(${reporte.id_informe}, this)">
+                            <span class="material-icons">send</span>
+                        </button>
+                        <div class="tooltip-text">Reenviar Reporte</div>
+                    </div>
+                    <div class="tooltip">
+                        <button onclick='abrirModalEditar(${JSON.stringify(reporte)})'>
+                            <span class="material-icons">edit</span>
+                        </button>
+                        <div class="tooltip-text">Editar Reporte</div>
+                    </div>
+                </td>
             </tr>
         `;
         tbody.innerHTML += fila;
@@ -500,29 +492,28 @@ function mostrarPagina() {
 
 // Función para cambiar de página
 function changePage(direction) {
-    let totalPages = Math.ceil(reportes.length / itemsPerPage);
-
-    if ((direction === -1 && currentPage === 1) || (direction === 1 && currentPage === totalPages)) {
-        return; // No avanzar si ya estamos en el límite
+    if ((direction === -1 && currentPage > 1) || (direction === 1 && currentPage < totalPages)) {
+        currentPage += direction;
+        fetchInformes();
     }
-
-    currentPage += direction;
-    updatePagination();
 }
 
 // 🔹 Función para filtrar la tabla por nombre y rango de fecha
 function filtrarTabla() {
     const nombre = document.getElementById("nombre").value;
-    const startDate = document.getElementById("start_date").value;
-    const endDate = document.getElementById("end_date").value;
-
+    const startDate = document.getElementById("fecha_desde").value;
+    const endDate = document.getElementById("fecha_hasta").value;
+    const params = new URLSearchParams({
+        page: 1,
+        per_page: itemsPerPage
+    });
     // Armamos la URL con los parámetros (puedes usar POST si prefieres)
-    const params = new URLSearchParams();
+    
     if (nombre) params.append("nombre", nombre);
-    if (startDate) params.append("start_date", startDate);
-    if (endDate) params.append("end_date", endDate);
+    if (startDate) params.append("fecha_desde", startDate);
+    if (endDate) params.append("fecha_hasta", endDate);
 
-    fetch(`<?= site_url('informes'); ?>?${params.toString()}`, {
+    fetch(`<?= site_url('informes-paginado'); ?>?${params.toString()}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -530,8 +521,9 @@ function filtrarTabla() {
     })
     .then(response => response.json())
     .then(data => {
-        reportes = data;
-        currentPage = 1;
+        reportes = data.data;
+        currentPage = parseInt(data.meta.pagina_actual);
+        totalPages = parseInt(data.meta.total_paginas);
         updatePagination();
     })
     .catch(error => console.error("Error al filtrar:", error));
