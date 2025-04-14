@@ -153,174 +153,141 @@ class Informes extends BaseController
      * Crea un nuevo informe, genera un PDF y lo envía por correo.
      */
 
-    public function postInforme()
-    {
-        try {
-            // Obtener datos del request
-            $fecha = $this->request->getPost('fecha');
-            $tipoInforme = trim($this->request->getPost('tipo_informe'));
-            $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
-            $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
-            $dniPaciente = trim($this->request->getPost('dni_paciente'));
-            $idCobertura = $this->request->getPost('id_cobertura');
-            $mailPaciente = trim($this->request->getPost('mail_paciente'));
-            $medico = trim($this->request->getPost('medico'));
-            $motivo = trim($this->request->getPost('motivo'));
-            $informe = trim($this->request->getPost('informe'));
-            $estomago = trim($this->request->getPost('estomago'));
-            $duodeno = trim($this->request->getPost('duodeno'));
-            $esofago = trim($this->request->getPost('esofago'));
-            $conclusion = trim($this->request->getPost('conclusion'));
-            $terapeutico = trim($this->request->getPost('terapeutico'));
-            $cual = trim($this->request->getPost('cual'));
-            $biopsia = trim($this->request->getPost('biopsia'));
-            $frascos = $this->request->getPost('frascos');
-            $edad = $this->request->getPost('edad');
-            $afiliado = $this->request->getPost('afiliado');
-
-            // Validar datos requeridos
-            $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
-            foreach ($requiredFields as $field) {
-                if (empty($this->request->getPost($field))) {
-                    return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
-                }
-            }
-
-            // Crear carpetas
-            $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
-            $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
-            $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
-            $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
-            $carpetaInforme = date('Ymd_His');
-            $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
-
-            if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
-                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
-            }
-
-            // Procesar imágenes
-            $imagenesBase64 = [];
-            $archivos = $this->request->getFileMultiple('archivo');
-
-            foreach ($archivos as $archivo) {
-                if ($archivo->isValid() && !$archivo->hasMoved()) {
-                    $allowedMimeTypes = ['image/jpeg', 'image/png'];
-                    if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
-                        return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
-                    }
-                    $contenido = file_get_contents($archivo->getTempName());
-                    $base64 = base64_encode($contenido);
-                    $mime = $archivo->getMimeType();
-                    $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
-                } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
-                    return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
-                }
-            }
-
-            // Cobertura
-            $coberturaData = $this->CoberturasModel->find($idCobertura);
-            if (!$coberturaData) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
-            }
-            $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
-
-            // Datos para PDF
-            $dataPdf = [
-                'fecha' => $fecha,
-                'tipo_informe' => $tipoInforme,
-                'nombre_paciente' => $nombrePaciente,
-                'fecha_nacimiento' => $fechaNacimiento,
-                'dni_paciente' => $dniPaciente,
-                'nombre_cobertura' => $nombreCobertura,
-                'mail_paciente' => $mailPaciente,
-                'medico' => $medico,
-                'motivo' => $motivo,
-                'informe' => $informe,
-                'estomago' => $estomago,
-                'duodeno' => $duodeno,
-                'esofago' => $esofago,
-                'conclusion' => $conclusion,
-                'terapeutico' => $terapeutico,
-                'cual' => $cual,
-                'biopsia' => $biopsia,
-                'frascos' => $frascos,
-                'edad' => $edad,
-                'afiliado' => $afiliado,
-                'imagenes' => $imagenesBase64,
-            ];
-
-            // Generar PDF
-            $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
-            $pdfPath = $uploadPathInforme . $pdfFileName;
-
-            if (!file_exists($pdfPath)) {
-                return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
-            }
-
-            // Insertar en base de datos
-            $this->InformesModel->insert([
-                'nombre_paciente' => $nombrePaciente,
-                'dni_paciente' => $dniPaciente,
-                'fecha' => $fecha,
-                'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
-                'mail_paciente' => $mailPaciente,
-                'tipo_informe' => $tipoInforme,
-                'id_cobertura' => $idCobertura,
-            ]);
-
-            // Enviar correo
-            $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
-            $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
-            $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
-
-            if ($resultadoEnvio['success']) {
-                return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
-            } else {
-                return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
-            }
-        } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
-        }
-    }
-    public function reenviarInformePorId($idInforme)
-    {
-        $informe = $this->InformesModel->find($idInforme);
-    
-        if (!$informe) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Informe no encontrado con el ID: ' . $idInforme,
-            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
-        }
-    
-        $mailPaciente = trim($informe['mail_paciente']);
-        $nombrePaciente = trim($informe['nombre_paciente']);
-    
-        // ✅ Usar ruta exacta desde la base de datos
-        $rutaPdfAbsoluta = FCPATH . str_replace('\\', '/', $informe['url_archivo']);
-    
-        if (!file_exists($rutaPdfAbsoluta)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'No se encontró el archivo PDF en la ruta esperada.',
-                'ruta_pdf' => $rutaPdfAbsoluta,
-            ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
-        }
-    
-        $asunto = 'Reenvío de Informe Médico para ' . $nombrePaciente;
-        $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se le reenvía su informe médico.</p>';
-    
-        $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$rutaPdfAbsoluta]);
-    
-        return $this->response->setJSON([
-            'status' => 'success',
-            'message' => 'Correo reenviado para el informe con ID: ' . $idInforme,
-            'ruta_pdf' => $rutaPdfAbsoluta,
-            'email_status' => $resultadoEnvio,
-        ]);
-    }
-    
-    
+     public function postInforme()
+     {
+         try {
+             // Obtener datos del request
+             $fecha = $this->request->getPost('fecha');
+             $tipoInforme = trim($this->request->getPost('tipo_informe'));
+             $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
+             $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
+             $dniPaciente = trim($this->request->getPost('dni_paciente'));
+             $idCobertura = $this->request->getPost('id_cobertura');
+             $mailPaciente = trim($this->request->getPost('mail_paciente'));
+             $medico = trim($this->request->getPost('medico'));
+             $motivo = trim($this->request->getPost('motivo'));
+             $informe = trim($this->request->getPost('informe'));
+             $estomago = trim($this->request->getPost('estomago'));
+             $duodeno = trim($this->request->getPost('duodeno'));
+             $esofago = trim($this->request->getPost('esofago'));
+             $conclusion = trim($this->request->getPost('conclusion'));
+             $terapeutico = trim($this->request->getPost('terapeutico'));
+             $cual = trim($this->request->getPost('cual'));
+             $biopsia = trim($this->request->getPost('biopsia'));
+             $frascos = $this->request->getPost('frascos');
+             $edad = $this->request->getPost('edad');
+             $afiliado = $this->request->getPost('afiliado');
+ 
+             // Validar datos requeridos
+             $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
+             foreach ($requiredFields as $field) {
+                 if (empty($this->request->getPost($field))) {
+                     return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
+                 }
+             }
+ 
+             // Crear carpetas
+             $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
+             $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
+             $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
+             $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
+ 
+             // ✅ Validación de existencia de carpeta por DNI
+             if (is_dir($uploadPathBasePaciente)) {
+                 return $this->response->setJSON(['success' => false, 'message' => 'Ya existe una carpeta para el DNI: ' . $dniPaciente]);
+             }
+ 
+             $carpetaInforme = date('Ymd_His');
+             $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
+ 
+             if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
+                 return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
+             }
+ 
+             // Procesar imágenes
+             $imagenesBase64 = [];
+             $archivos = $this->request->getFileMultiple('archivo');
+ 
+             foreach ($archivos as $archivo) {
+                 if ($archivo->isValid() && !$archivo->hasMoved()) {
+                     $allowedMimeTypes = ['image/jpeg', 'image/png'];
+                     if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
+                         return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
+                     }
+                     $contenido = file_get_contents($archivo->getTempName());
+                     $base64 = base64_encode($contenido);
+                     $mime = $archivo->getMimeType();
+                     $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
+                 } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
+                     return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
+                 }
+             }
+ 
+             // Cobertura
+             $coberturaData = $this->CoberturasModel->find($idCobertura);
+             if (!$coberturaData) {
+                 return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
+             }
+             $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
+ 
+             // Datos para PDF
+             $dataPdf = [
+                 'fecha' => $fecha,
+                 'tipo_informe' => $tipoInforme,
+                 'nombre_paciente' => $nombrePaciente,
+                 'fecha_nacimiento' => $fechaNacimiento,
+                 'dni_paciente' => $dniPaciente,
+                 'nombre_cobertura' => $nombreCobertura,
+                 'mail_paciente' => $mailPaciente,
+                 'medico' => $medico,
+                 'motivo' => $motivo,
+                 'informe' => $informe,
+                 'estomago' => $estomago,
+                 'duodeno' => $duodeno,
+                 'esofago' => $esofago,
+                 'conclusion' => $conclusion,
+                 'terapeutico' => $terapeutico,
+                 'cual' => $cual,
+                 'biopsia' => $biopsia,
+                 'frascos' => $frascos,
+                 'edad' => $edad,
+                 'afiliado' => $afiliado,
+                 'imagenes' => $imagenesBase64,
+             ];
+ 
+             // Generar PDF
+             $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
+             $pdfPath = $uploadPathInforme . $pdfFileName;
+ 
+             if (!file_exists($pdfPath)) {
+                 return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
+             }
+ 
+             // Insertar en base de datos
+             $this->InformesModel->insert([
+                 'nombre_paciente' => $nombrePaciente,
+                 'dni_paciente' => $dniPaciente,
+                 'fecha' => $fecha,
+                 'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
+                 'mail_paciente' => $mailPaciente,
+                 'tipo_informe' => $tipoInforme,
+                 'id_cobertura' => $idCobertura,
+             ]);
+ 
+             // Enviar correo
+             $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
+             $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
+             $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
+ 
+             if ($resultadoEnvio['success']) {
+                 return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
+             } else {
+                 return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
+             }
+         } catch (\Exception $e) {
+             return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
+         }
+     }
 
     private function generatePDF($data, $cobertura, $outputPath)
     {
