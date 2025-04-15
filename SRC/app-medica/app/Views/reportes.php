@@ -301,9 +301,17 @@ td button:hover {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+#close-alert {
+    margin-left: 10px;
+    font-size: 18px;
+}
 </style>
 
-<div id="mensaje-alerta" class="alert hidden"></div>
+
+<div id="mensaje-alerta" class="alert hidden">
+    <span id="close-alert" style="float:right; cursor:pointer; font-weight: bold;">&times;</span>
+    <span id="alert-text"></span>
+    </div>
 <div class="content">
     <div class="container">
         <h2>Reportes</h2>
@@ -655,17 +663,27 @@ document.getElementById("formEditarReporte").addEventListener("submit", function
     });
 });
 
-function mostrarMensaje(tipo, texto) {
+function mostrarMensaje(tipo, mensaje) {
     const alerta = document.getElementById('mensaje-alerta');
-    alerta.textContent = texto;
-    alerta.className = 'alert ' + tipo; // "alert success" o "alert error"
-    
-    // Mostrar
-    alerta.classList.remove('hidden');
+    const texto = document.getElementById('alert-text');
+    const cerrar = document.getElementById('close-alert');
 
-    // Ocultar luego de unos segundos
-    setTimeout(() => {
-        alerta.classList.add('hidden');
-    }, 4000);
+    alerta.classList.remove('hidden', 'success', 'error');
+    alerta.classList.add(tipo); // success o error
+    texto.innerText = mensaje;
+
+    // Mostrar el botón de cerrar solo si es error
+    cerrar.style.display = tipo === 'error' ? 'inline' : 'none';
+
+    if (tipo === 'success') {
+        setTimeout(() => {
+            alerta.classList.add('hidden');
+        }, 10000); // 10 segundos
+    }
 }
+
+// Permitir cerrar manualmente el mensaje
+document.getElementById('close-alert').addEventListener('click', () => {
+    document.getElementById('mensaje-alerta').classList.add('hidden');
+});
 </script>

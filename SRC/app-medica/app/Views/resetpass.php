@@ -108,10 +108,18 @@
     color: #666;
     margin-left: 8px;
 }
+#close-alert {
+    margin-left: 10px;
+    font-size: 18px;
+}
+
 </style>
 
 <div class="form-container">
-    <div id="alert-message" class="alert hidden"></div>
+<div id="alert-message" class="alert hidden">
+    <span id="close-alert" style="float:right; cursor:pointer; font-weight: bold;">&times;</span>
+    <span id="alert-text"></span>
+    </div>
     <div class="form">
         <h1>Cambiar contraseña</h1>
 
@@ -199,16 +207,29 @@
         });
     });
 
-    function mostrarAlerta(mensaje, tipo = 'error') {
-        const alerta = document.getElementById("alert-message");
-        alerta.textContent = mensaje;
-        alerta.className = `alert ${tipo}`;
-        alerta.classList.remove("hidden");
+    function mostrarAlerta(mensaje, tipo) {
+        const alertBox = document.getElementById('alert-message');
+    const alertText = document.getElementById('alert-text');
+    const closeBtn = document.getElementById('close-alert');
 
-        clearTimeout(window.alertTimeout);
-        window.alertTimeout = setTimeout(() => {
-            alerta.classList.add("hidden");
-        }, 3000);
+    alertBox.className = `alert ${tipo}`; // Aplica clases 'alert success' o 'alert error'
+    alertText.textContent = mensaje;
+    alertBox.classList.remove('hidden');
+
+    // Limpia eventos anteriores para evitar múltiples escuchas
+    const newCloseBtn = closeBtn.cloneNode(true);
+    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+    newCloseBtn.addEventListener('click', () => {
+        alertBox.classList.add('hidden');
+    });
+
+    // Si es success, ocultar automáticamente después de 10 segundos
+    if (tipo === 'success') {
+        setTimeout(() => {
+            alertBox.classList.add('hidden');
+        }, 10000);
+    }
     }
      // Mostrar/ocultar contraseña
      document.querySelectorAll('.toggle-password').forEach(icon => {

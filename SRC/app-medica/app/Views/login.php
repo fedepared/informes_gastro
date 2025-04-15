@@ -200,12 +200,22 @@
     .btn-cancel:hover {
         background-color: #999;
     }
+    #close-alert {
+    margin-left: 10px;
+    font-size: 18px;
+}
+
     </style>
+    
 </head>
 
 <body>
     <!-- Alerta reutilizable -->
-    <div id="alert-message" class="alert hidden"></div>
+    <div id="alert-message" class="alert hidden">
+    <span id="close-alert" style="float:right; cursor:pointer; font-weight: bold;">&times;</span>
+    <span id="alert-text"></span>
+    </div>
+
 
     <div class="form">
         <h1>Iniciar Sesión</h1>  
@@ -343,17 +353,32 @@ function confirmarRecuperacion() {
   
 
     function mostrarAlerta(mensaje, tipo = 'error') {
-        const alertDiv = document.getElementById("alert-message");
+    const alertDiv = document.getElementById("alert-message");
+    const alertText = document.getElementById("alert-text");
+    const closeBtn = document.getElementById("close-alert");
 
-        alertDiv.textContent = mensaje;
-        alertDiv.className = `alert ${tipo}`; // Aplica clase 'alert success' o 'alert error'
-        alertDiv.classList.remove("hidden");
+    alertText.textContent = mensaje;
+    alertDiv.className = `alert ${tipo}`; // Aplica clase 'alert success' o 'alert error'
+    alertDiv.classList.remove("hidden");
 
-        clearTimeout(window.alertTimeout);
+    // Limpia cualquier temporizador anterior
+    clearTimeout(window.alertTimeout);
+
+    if (tipo === 'success') {
+        // Ocultar automáticamente después de 10 segundos
         window.alertTimeout = setTimeout(() => {
             alertDiv.classList.add("hidden");
-        }, 4000);
+        }, 10000);
+        closeBtn.style.display = "none"; // Ocultamos la X en success
+    } else {
+        // No se oculta automáticamente
+        closeBtn.style.display = "inline"; // Mostramos la X
     }
+
+    closeBtn.onclick = () => {
+        alertDiv.classList.add("hidden");
+    };
+}
 </script>
 </body>
 </html>

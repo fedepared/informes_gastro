@@ -33,8 +33,8 @@ class Usuarios extends BaseController
             $mail->Password   = '@Wurst2024@';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             $mail->Port       = 465;
-
-            $mail->setFrom('estudio@dianaestrin.com', 'Your Name');
+            $mail->CharSet = 'UTF-8';
+            $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
             $mail->addAddress($to);
 
             $mail->isHTML(true);

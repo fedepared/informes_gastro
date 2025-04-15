@@ -137,7 +137,7 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
-    width: 100vh;
+    width: 100%;
     max-width: 90%;
     text-align: center;
 }
@@ -148,10 +148,17 @@
     display: flex
 
 }
+  #close-alert {
+    margin-left: 10px;
+    font-size: 18px;
+}
 </style>
 
 
-<div id="alert-message" class="alert hidden"></div>
+<div id="alert-message" class="alert hidden">
+    <span id="close-alert" style="float:right; cursor:pointer; font-weight: bold;">&times;</span>
+    <span id="alert-text"></span>
+    </div>
 <div class="formulario">
    <label>(<span class="asterisco">*</span>) Datos obligatorios</label> 
     <h2>Carga de Informe</h2>
@@ -390,7 +397,8 @@ document.addEventListener('DOMContentLoaded', function () {
     
     const formData = new FormData(form);
     const tipoEstudio = form.querySelector('select[name="tipo_informe"]').value;
-
+    const terapeuticoSelect = form.querySelector('select[name="terapeutico"]').value;
+    const biopsia = form.querySelector('select[name="biopsia"]').value;
     // Si el estudio es VCC, eliminar los campos específicos
     if (tipoEstudio === 'VCC') {
         formData.delete('estomago');
@@ -399,6 +407,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if(tipoEstudio === 'VEDA') {
         formData.delete('informe');
+    }
+    if(terapeuticoSelect === 'NO'){
+        formData.delete('cual');
+    }
+    if(biopsia === 'NO' ){
+        formData.delete('frascos');
     }
 
     const btnEnviar = document.getElementById('btnEnviar');
@@ -412,12 +426,17 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(response => response.json())
         .then(data => {
-            
+           if(data.success){
             mostrarAlerta('Fomulario creado con éxito','success');
             form.reset(); // Opcional: reiniciar el formulario
 
+           }
+           
             if (!data.success) {
-                mostrarAlerta('Error al crear el formulario','error');
+               
+                const mensaje = `${data.message}`;
+               
+                mostrarAlerta('Error al crear el formulario. '+ mensaje,'error');
             } else {
                 btnEnviar.disabled = true;
             }
@@ -599,17 +618,82 @@ function cargarCoberturas() {
         return regex.test(email);
     }
 });
-function mostrarAlerta(mensaje, tipo = 'error') {
-        const alertDiv = document.getElementById("alert-message");
 
-        alertDiv.textContent = mensaje;
-        alertDiv.className = `alert ${tipo}`; // Aplica clase 'alert success' o 'alert error'
-        alertDiv.classList.remove("hidden");
+function mostrarAlerta(mensaje, tipo) {
+    const alertBox = document.getElementById("alert-message");
+    const alertText = document.getElementById("alert-text");
+    const closeBtn = document.getElementById("close-alert");
 
-        clearTimeout(window.alertTimeout);
-        window.alertTimeout = setTimeout(() => {
-            alertDiv.classList.add("hidden");
-        }, 4000);
+    // Resetear clases previas
+    alertBox.classList.remove("success", "error", "hidden");
+
+    // Agregar clase según el tipo
+    if (tipo === "success") {
+        alertBox.classList.add("success");
+        closeBtn.style.display = "none"; // Ocultar botón cerrar
+    } else if (tipo === "error") {
+        alertBox.classList.add("error");
+        closeBtn.style.display = "inline"; // Mostrar botón cerrar
     }
 
+    alertText.innerText = mensaje;
+    alertBox.classList.remove("hidden");
+
+    // Si es éxito, ocultar automáticamente luego de 10 segundos
+    if (tipo === "success") {
+        setTimeout(() => {
+            alertBox.classList.add("hidden");
+        }, 10000);
+    }
+
+    // Agregar funcionalidad al botón cerrar
+    closeBtn.onclick = () => {
+        alertBox.classList.add("hidden");
+    };
+}
+document.addEventListener("DOMContentLoaded", function () {
+    // ... tu código anterior
+
+    const terapeuticoSelect = document.querySelector('select[name="terapeutico"]');
+    const cualContainer = terapeuticoSelect.parentElement.parentElement.querySelectorAll("div")[1]; // el segundo div del grupo
+    const cualLabel = cualContainer.querySelector("label");
+    const cualSelect = cualContainer.querySelector("select");
+
+    function actualizarVisibilidadCual() {
+        if (terapeuticoSelect.value === "NO") {
+            cualLabel.style.display = "none";
+            cualSelect.style.display = "none";
+        } else {
+            cualLabel.style.display = "block";
+            cualSelect.style.display = "inline-block";
+        }
+    }
+
+    // Ejecutar al cargar
+    actualizarVisibilidadCual();
+
+    // Ejecutar al cambiar
+    terapeuticoSelect.addEventListener("change", actualizarVisibilidadCual);
+    
+});
+document.addEventListener("DOMContentLoaded", function () {
+  
+    // ------- Mostrar/Ocultar "Cantidad de frascos" según biopsia -------
+    const biopsiaSelect = document.querySelector('select[name="biopsia"]');
+    const inputFrascos = document.querySelector('input[name="frascos"]');
+    const labelFrascos = inputFrascos.closest('div'); // para ocultar el div completo
+
+    function actualizarVisibilidadFrascos() {
+        if (biopsiaSelect.value === "SI") {
+            labelFrascos.style.display = "block";
+        } else {
+            labelFrascos.style.display = "none";
+            inputFrascos.value = ""; // limpiamos si está oculto
+        }
+    }
+
+    biopsiaSelect.addEventListener("change", actualizarVisibilidadFrascos);
+    actualizarVisibilidadFrascos(); // al cargar
+
+});
 </script>

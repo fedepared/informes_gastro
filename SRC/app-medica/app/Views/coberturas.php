@@ -246,9 +246,38 @@ label {
     cursor: not-allowed;
     opacity: 0.6;
 }
+.alert {
+        padding: 15px;
+        margin-top: 20px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .alert.success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .alert.hidden {
+        display: none;
+    }
+    #close-alert {
+    margin-left: 10px;
+    font-size: 18px;
+}
 
 </style>
-
+<div id="alert-message" class="alert hidden">
+    <span id="close-alert" style="float:right; cursor:pointer; font-weight: bold;">&times;</span>
+    <span id="alert-text"></span>
+    </div>
 <div class="container">
     <div class="card">
         <h2>Lista de Coberturas</h2>
@@ -288,7 +317,7 @@ label {
         <div class="modal-header">
             <h3>Agregar Cobertura</h3>
         </div>
-        <form action="cobertura/alta" method="post">
+        <form id="formAgregarCobertura">
             <label for="nombre_cobertura">Nombre Cobertura:</label>
             <input type="text" id="nombre_cobertura" name="nombre_cobertura" required required style="text-transform: uppercase;"><br><br>
             <div class="modal-footer">
@@ -484,9 +513,128 @@ nextBtn.disabled = currentPage >= totalPages;
 
     }
     function showModalDelete(id) {
-    
-    document.getElementById('deleteForm').action = '<?= site_url('cobertura/borrar/'); ?>' + id;
-    document.getElementById('deleteModal').style.display = "block";
+    document.getElementById('delete_id').value = id;
+    document.getElementById('deleteModal').style.display = 'block';
+}
+document.getElementById('deleteForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const id = formData.get('id_cobertura');
+
+    fetch(`<?= site_url('cobertura/borrar'); ?>/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'error') {
+            mostrarAlerta(data.message, 'error');
+        } else {
+            closeModal('deleteModal');
+            mostrarAlerta('Cobertura eliminada exitosamente.', 'success');
+            cargarCoberturas(); // Vuelve a cargar la tabla
+        }
+    })
+    .catch(error => {
+        console.error('Error en la solicitud:', error);
+        mostrarAlerta('Error al eliminar la cobertura.', 'error');
+    });
+});
+document.getElementById('formAgregarCobertura').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+
+    fetch('<?= site_url('cobertura/alta'); ?>', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async response => {
+        const data = await response.json();
+
+        if (!response.ok) {
+            mostrarAlerta(data.message, 'error');
+            closeModal('addModal');
+        } else {
+            closeModal('addModal');
+            mostrarAlerta('Cobertura creada exitosamente.', 'success');
+            cargarCoberturas(); // Refresca la tabla
+            form.reset(); // Limpia el formulario
+            document.getElementById('btnGuardar').disabled = true;
+        }
+    })
+    .catch(error => {
+        console.error('Error en la solicitud:', error);
+        mostrarAlerta('Ocurrió un error al enviar la solicitud.', 'error');
+    });
+});
+document.getElementById('editForm').addEventListener('submit', function (e) { 
+    e.preventDefault(); // Evita que se recargue la página
+
+    const id = document.getElementById('edit_id').value;
+    const nombre = document.getElementById('edit_nombre').value.trim();
+
+    fetch(`<?= site_url('cobertura/editar/') ?>${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nombre_cobertura: nombre })
+    })
+    .then(async response => {
+        const result = await response.json();
+
+        if (response.ok) {
+            mostrarAlerta('Cobertura actualizada exitosamente', 'success');
+            closeModal('editModal');
+            cargarCoberturas();
+        } else {
+            // Muestra el mensaje específico que devuelve el backend, si existe
+            const mensajeError = result?.error || 'Error al actualizar cobertura';
+            closeModal('editModal');
+            mostrarAlerta(mensajeError, 'error');
+        }
+    })
+    .catch(error => {
+        closeModal('editModal');
+        mostrarAlerta('Error al actualizar: ' + error.message, 'error');
+    });
+});
+
+function mostrarAlerta(mensaje, tipo) {
+    const alertBox = document.getElementById('alert-message');
+    const alertText = document.getElementById('alert-text');
+    const closeBtn = document.getElementById('close-alert');
+
+    alertText.innerText = mensaje;
+
+    // Remover clases previas y mostrar la nueva alerta
+    alertBox.classList.remove('hidden', 'success', 'error');
+    alertBox.classList.add(tipo === 'success' ? 'success' : 'error');
+
+    // Mostrar el botón de cerrar solo si es error
+    closeBtn.style.display = tipo === 'error' ? 'inline' : 'none';
+
+    // Mostrar la alerta
+    alertBox.style.display = 'block';
+
+    // Si es éxito, ocultar la alerta después de 10 segundos
+    if (tipo === 'success') {
+        setTimeout(() => {
+            alertBox.classList.add('hidden');
+            alertBox.style.display = 'none';
+        }, 10000);
+    }
+
+    // Cierre manual
+    closeBtn.onclick = function () {
+        alertBox.classList.add('hidden');
+        alertBox.style.display = 'none';
+    };
 }
 </script>
 
