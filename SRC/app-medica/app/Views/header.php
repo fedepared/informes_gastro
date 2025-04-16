@@ -48,10 +48,10 @@
             <h1 class="nombre">Diana Estrin</h1>
             <nav class="nav">
                 <ul class="ul-menu">
-                    <li><a  class="menu" href="formulario">Carga de Informes</a></li>
-                    <li ><a class="menu" href="reportes">Reportes</a></li>
-                    <li ><a class="menu" href="coberturas_view">Coberturas</a></li>
-                    <li ><a class="menu" href="reset">Contraseña</a></li>
+                    <li><a  class="menu" href="formulario" target="_blank">Carga de Informes</a></li>
+                    <li ><a class="menu" href="reportes" target="_blank">Reportes</a></li>
+                    <li ><a class="menu" href="coberturas_view" target="_blank">Coberturas</a></li>
+                    <li ><a class="menu" href="reset" target="_blank">Contraseña</a></li>
                     <li ><a class="menu" href="logout">Salir</a></li>
                 </ul>
             </nav>
