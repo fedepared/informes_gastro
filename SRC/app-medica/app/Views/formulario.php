@@ -58,6 +58,8 @@
     /* Estilo para el área de texto */
     .form textarea {
         width: 96%;
+        max-width: 96%;
+        min-width: 96%;
         padding: 10px;
         margin-bottom: 16px;
         border: 1px solid #ccc;
@@ -184,7 +186,7 @@
 
         <div class="datos1">
             <div>
-                <label>Nombre y apellido <span class="asterisco">*</span></label>
+                <label>Apellido y Nombre <span class="asterisco">*</span></label>
                 <input type="text" name="nombre_paciente" class="required-field">
                 <span class="mensaje-error">Este campo es obligatorio</span>
             </div>
@@ -197,7 +199,7 @@
         <div class="datos1">
             <div >
                 <label>Edad</label>
-                <input type="number" name="edad" id="edad" readonly disabled="true">
+                <input type="number" name="edad" id="edad" readonly>
             </div>
             <div>
                 <label>Número de documento <span class="asterisco">*</span></label>
@@ -252,43 +254,43 @@
 
 <!-- Inputs adicionales ocultos inicialmente -->
 <div id="vedaInputs" style="display: none;">
-    <div class="datos1">
+    <div>
+        <div >
+            <label>Esófago</label>
+            <textarea type="text" name="esofago" ></textarea>
+        </div>
+    </div>
+    <div >
         <div>
             <label>Estómago</label>
-            <input type="text" name="estomago">
+            <textarea type="text" name="estomago"></textarea>
         </div>
+    </div>
+    <div >
         <div>
             <label>Duodeno</label>
-            <input type="text" name="duodeno">
+            <textarea type="text" name="duodeno"></textarea>
         </div>
     </div>
-    <div class="datos1">
-        <div style="width: 87%;">
-            <label>Esófago</label>
-            <input type="text" name="esofago" style="width: 46%;">
-        </div>
-    </div>
+    
 </div>
 
 
         <label>Conclusión</label>
-        <textarea name="conclusion"></textarea><br>
+        <textarea name="conclusion" style="height: 60px;"></textarea><br>
 
         <div class="datos1">
             <div>
                 <label>¿Se efectuó terapéutica? </label>
                 <select name="terapeutico">
-                    <option value="SI">SI</option>
                     <option value="NO">NO</option>
+                    <option value="SI">SI</option>
                 </select>
             </div>
             <div>
                 <label>¿Cuál?</label>
-                <select name="cual" >
-                    <option value="POLIPECTOMIA">POLIPECTOMIA</option>
-                    <option value="MUCOSECTOMIA">MUCOSECTOMIA</option>
-                    <option value="DILATACION">DILATACION</option>
-                </select>
+                <input type="text" name="cual" id="cual">
+               
             </div>
         </div>
 
@@ -296,8 +298,8 @@
             <div>
                 <label>¿Se efectuó biopsia? </label>
                 <select name="biopsia" >
-                    <option value="SI">SI</option>
                     <option value="NO">NO</option>
+                    <option value="SI">SI</option>
                 </select>
             </div>
             <div>
@@ -314,7 +316,66 @@
     </form>
 </div>
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    const selectBiopsia = document.querySelector('select[name="biopsia"]');
+    const inputFrascos = document.querySelector('input[name="frascos"]');
 
+    // Mostrar u ocultar el input de frascos
+    function toggleFrascos(valor) {
+        if (valor === 'SI') {
+            inputFrascos.parentElement.style.display = 'block';
+        } else {
+            inputFrascos.parentElement.style.display = 'none';
+        }
+    }
+
+    // Restaurar valor si existe en localStorage
+    const valorGuardado = localStorage.getItem('biopsia');
+    if (valorGuardado) {
+        selectBiopsia.value = valorGuardado;
+        toggleFrascos(valorGuardado);
+    } else {
+        toggleFrascos(selectBiopsia.value); // si no hay nada guardado, usamos el valor por defecto
+    }
+
+    // Guardar en localStorage cuando cambia
+    selectBiopsia.addEventListener('change', function () {
+        const valor = selectBiopsia.value;
+        localStorage.setItem('biopsia', valor);
+        toggleFrascos(valor);
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const campoCual = document.getElementById('cual');
+    const selectTerapeutico = document.querySelector('select[name="terapeutico"]');
+
+    const valorTerapeutico = localStorage.getItem('terapeutico');
+
+    // Establecer el valor del select si estaba guardado
+    if (valorTerapeutico) {
+        selectTerapeutico.value = valorTerapeutico;
+    }
+
+    // Mostrar u ocultar el campo 'cual'
+    function toggleCampoCual(valor) {
+        if (valor === 'SI') {
+            campoCual.style.display = 'block';
+        } else {
+            campoCual.style.display = 'none';
+        }
+    }
+
+    // Ejecutar al cargar la página
+    toggleCampoCual(selectTerapeutico.value);
+
+    // Escuchar cambios en el select y guardar en localStorage
+    selectTerapeutico.addEventListener('change', function () {
+        const valor = selectTerapeutico.value;
+        localStorage.setItem('terapeutico', valor);
+        toggleCampoCual(valor);
+    });
+});
 document.addEventListener("DOMContentLoaded", function () {
     const tipoEstudioSelect = document.querySelector('select[name="tipo_informe"]');
     const inputInforme = document.getElementById("inputinforme");
@@ -429,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function () {
            if(data.success){
             mostrarAlerta('Fomulario creado con éxito','success');
             form.reset(); // Opcional: reiniciar el formulario
-
+            localStorage.removeItem('coberturaSeleccionada'); // Borrar cobertura al enviar
            }
            
             if (!data.success) {
@@ -472,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function () {
             afiliadoInput.value = '';
             afiliadoInput.disabled = true;
         }
+        localStorage.setItem('coberturaSeleccionada', coberturaValor);
     }
 
     // Ejecutar al cambiar la cobertura
@@ -589,6 +651,12 @@ function cargarCoberturas() {
                         option.textContent = cobertura.nombre_cobertura; // El texto es el nombre de la cobertura
                         selectCobertura.appendChild(option);
                     });
+                    // Aplicar cobertura guardada si existe
+                const coberturaGuardada = localStorage.getItem('coberturaSeleccionada');
+                if (coberturaGuardada) {
+                    selectCobertura.value = coberturaGuardada;
+                    selectCobertura.dispatchEvent(new Event('change')); // Disparar evento manual
+                }
                 } else {
                     console.error("La respuesta no es un array:", data);
                 }
@@ -651,31 +719,26 @@ function mostrarAlerta(mensaje, tipo) {
         alertBox.classList.add("hidden");
     };
 }
-document.addEventListener("DOMContentLoaded", function () {
-    // ... tu código anterior
+document.addEventListener('DOMContentLoaded', function () {
+    const selectTerapeutico = document.querySelector('select[name="terapeutico"]');
+    const inputCual = document.querySelector('input[name="cual"]');
 
-    const terapeuticoSelect = document.querySelector('select[name="terapeutico"]');
-    const cualContainer = terapeuticoSelect.parentElement.parentElement.querySelectorAll("div")[1]; // el segundo div del grupo
-    const cualLabel = cualContainer.querySelector("label");
-    const cualSelect = cualContainer.querySelector("select");
-
-    function actualizarVisibilidadCual() {
-        if (terapeuticoSelect.value === "NO") {
-            cualLabel.style.display = "none";
-            cualSelect.style.display = "none";
+    function actualizarCampoCual() {
+        if (selectTerapeutico.value === 'SI') {
+            inputCual.parentElement.style.display = 'block';
         } else {
-            cualLabel.style.display = "block";
-            cualSelect.style.display = "inline-block";
+            inputCual.parentElement.style.display = 'none';
+            inputCual.value = ''; // limpiar el campo si está oculto
         }
     }
 
-    // Ejecutar al cargar
-    actualizarVisibilidadCual();
+    // Ejecutar al cargar la página
+    actualizarCampoCual();
 
-    // Ejecutar al cambiar
-    terapeuticoSelect.addEventListener("change", actualizarVisibilidadCual);
-    
+    // Escuchar cambios
+    selectTerapeutico.addEventListener('change', actualizarCampoCual);
 });
+
 document.addEventListener("DOMContentLoaded", function () {
   
     // ------- Mostrar/Ocultar "Cantidad de frascos" según biopsia -------
@@ -696,4 +759,41 @@ document.addEventListener("DOMContentLoaded", function () {
     actualizarVisibilidadFrascos(); // al cargar
 
 });
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formInforme');
+
+    // Restaurar datos del localStorage si existen
+    const savedForm = localStorage.getItem('formInforme');
+    if (savedForm) {
+        const data = JSON.parse(savedForm);
+        Object.entries(data).forEach(([key, value]) => {
+            const field = form.elements[key];
+            if (field) {
+                if (field.type === 'select-one' || field.type === 'text' || field.type === 'email' || field.type === 'date' || field.type === 'number') {
+                    field.value = value;
+                } else if (field.type === 'textarea') {
+                    field.value = value;
+                }
+            }
+        });
+    }
+
+    // Escuchar cambios en los campos y guardar en localStorage
+    form.addEventListener('input', () => {
+        const formData = {};
+        Array.from(form.elements).forEach(el => {
+            if (el.name && el.type !== 'file' && !el.disabled) {
+                formData[el.name] = el.value;
+            }
+        });
+        localStorage.setItem('formInforme', JSON.stringify(formData));
+    });
+
+    // Limpiar localStorage al enviar correctamente
+    form.addEventListener('submit', function (event) {
+        // Dentro del .then donde `data.success === true`, agregá esto:
+         localStorage.removeItem('formInforme');
+    });
+});
+
 </script>
