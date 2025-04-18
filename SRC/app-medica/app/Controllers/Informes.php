@@ -80,30 +80,30 @@ class Informes extends BaseController
     }
 
     public function getInformesPaginado()
-{
-    $nombre = $this->request->getGet('nombre');
-    $fecha_desde = $this->request->getGet('fecha_desde');
-    $fecha_hasta = $this->request->getGet('fecha_hasta');
+    {
+        $nombre = $this->request->getGet('nombre');
+        $fecha_desde = $this->request->getGet('fecha_desde');
+        $fecha_hasta = $this->request->getGet('fecha_hasta');
 
-    $page = (int) $this->request->getGet('page') ?: 1;
-    $perPage = (int) $this->request->getGet('per_page') ?: 10;
-    $offset = ($page - 1) * $perPage;
+        $page = (int) $this->request->getGet('page') ?: 1;
+        $perPage = (int) $this->request->getGet('per_page') ?: 10;
+        $offset = ($page - 1) * $perPage;
 
-    // Obtener resultados y total de registros filtrados
-    $resultado = $this->InformesModel->getInformesPaginado($nombre, $fecha_desde, $fecha_hasta, $perPage, $offset);
-    $total = $this->InformesModel->countInformesFiltrados($nombre, $fecha_desde, $fecha_hasta);
-    $totalPaginas = ceil($total / $perPage);
+        // Obtener resultados y total de registros filtrados
+        $resultado = $this->InformesModel->getInformesPaginado($nombre, $fecha_desde, $fecha_hasta, $perPage, $offset);
+        $total = $this->InformesModel->countInformesFiltrados($nombre, $fecha_desde, $fecha_hasta);
+        $totalPaginas = ceil($total / $perPage);
 
-    return $this->response->setJSON([
-        'data' => $resultado,
-        'meta' => [
-            'pagina_actual' => $page,
-            'por_pagina' => $perPage,
-            'total_paginas' => $totalPaginas,
-            'total_registros' => $total,
-        ]
-    ]);
-}
+        return $this->response->setJSON([
+            'data' => $resultado,
+            'meta' => [
+                'pagina_actual' => $page,
+                'por_pagina' => $perPage,
+                'total_paginas' => $totalPaginas,
+                'total_registros' => $total,
+            ]
+        ]);
+    }
 
 
     /**
@@ -153,286 +153,375 @@ class Informes extends BaseController
      * Crea un nuevo informe, genera un PDF y lo envía por correo.
      */
 
-     public function postInforme()
-     {
-         try {
-             // Obtener datos del request
-             $fecha = $this->request->getPost('fecha');
-             $tipoInforme = trim($this->request->getPost('tipo_informe'));
-             $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
-             $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
-             $dniPaciente = trim($this->request->getPost('dni_paciente'));
-             $idCobertura = $this->request->getPost('id_cobertura');
-             $mailPaciente = trim($this->request->getPost('mail_paciente'));
-             $medico = trim($this->request->getPost('medico'));
-             $motivo = trim($this->request->getPost('motivo'));
-             $informe = trim($this->request->getPost('informe'));
-             $estomago = trim($this->request->getPost('estomago'));
-             $duodeno = trim($this->request->getPost('duodeno'));
-             $esofago = trim($this->request->getPost('esofago'));
-             $conclusion = trim($this->request->getPost('conclusion'));
-             $terapeutico = trim($this->request->getPost('terapeutico'));
-             $cual = trim($this->request->getPost('cual'));
-             $biopsia = trim($this->request->getPost('biopsia'));
-             $frascos = $this->request->getPost('frascos');
-             $edad = $this->request->getPost('edad');
-             $afiliado = $this->request->getPost('afiliado');
- 
-             // Validar datos requeridos
-             $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
-             foreach ($requiredFields as $field) {
-                 if (empty($this->request->getPost($field))) {
-                     return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
-                 }
-             }
- 
-             // Crear carpetas
-             $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
-             $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
-             $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
-             $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
- 
-             // ✅ Validación de existencia de carpeta por DNI
-             if (is_dir($uploadPathBasePaciente)) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'Ya existe una carpeta para el DNI: ' . $dniPaciente]);
-             }
- 
-             $carpetaInforme = date('Ymd_His');
-             $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
- 
-             if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
-             }
- 
-             // Procesar imágenes
-             $imagenesBase64 = [];
-             $archivos = $this->request->getFileMultiple('archivo');
- 
-             foreach ($archivos as $archivo) {
-                 if ($archivo->isValid() && !$archivo->hasMoved()) {
-                     $allowedMimeTypes = ['image/jpeg', 'image/png'];
-                     if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
-                         return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
-                     }
-                     $contenido = file_get_contents($archivo->getTempName());
-                     $base64 = base64_encode($contenido);
-                     $mime = $archivo->getMimeType();
-                     $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
-                 } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
-                     return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
-                 }
-             }
- 
-             // Cobertura
-             $coberturaData = $this->CoberturasModel->find($idCobertura);
-             if (!$coberturaData) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
-             }
-             $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
- 
-             // Datos para PDF
-             $dataPdf = [
-                 'fecha' => $fecha,
-                 'tipo_informe' => $tipoInforme,
-                 'nombre_paciente' => $nombrePaciente,
-                 'fecha_nacimiento' => $fechaNacimiento,
-                 'dni_paciente' => $dniPaciente,
-                 'nombre_cobertura' => $nombreCobertura,
-                 'mail_paciente' => $mailPaciente,
-                 'medico' => $medico,
-                 'motivo' => $motivo,
-                 'informe' => $informe,
-                 'estomago' => $estomago,
-                 'duodeno' => $duodeno,
-                 'esofago' => $esofago,
-                 'conclusion' => $conclusion,
-                 'terapeutico' => $terapeutico,
-                 'cual' => $cual,
-                 'biopsia' => $biopsia,
-                 'frascos' => $frascos,
-                 'edad' => $edad,
-                 'afiliado' => $afiliado,
-                 'imagenes' => $imagenesBase64,
-             ];
- 
-             // Generar PDF
-             $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
-             $pdfPath = $uploadPathInforme . $pdfFileName;
- 
-             if (!file_exists($pdfPath)) {
-                 return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
-             }
- 
-             // Insertar en base de datos
-             $this->InformesModel->insert([
-                 'nombre_paciente' => $nombrePaciente,
-                 'dni_paciente' => $dniPaciente,
-                 'fecha' => $fecha,
-                 'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
-                 'mail_paciente' => $mailPaciente,
-                 'tipo_informe' => $tipoInforme,
-                 'id_cobertura' => $idCobertura,
-             ]);
- 
-             // Enviar correo
-             $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
-             $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
-             $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
- 
-             if ($resultadoEnvio['success']) {
-                 return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
-             } else {
-                 return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
-             }
-         } catch (\Exception $e) {
-             return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
-         }
-     }
+    public function postInforme()
+    {
+        try {
+            // Obtener datos del request
+            $fecha = $this->request->getPost('fecha');
+            $tipoInforme = trim($this->request->getPost('tipo_informe'));
+            $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
+            $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
+            $dniPaciente = trim($this->request->getPost('dni_paciente'));
+            $idCobertura = $this->request->getPost('id_cobertura');
+            $mailPaciente = trim($this->request->getPost('mail_paciente'));
+            $medico = trim($this->request->getPost('medico'));
+            $motivo = trim($this->request->getPost('motivo'));
+            $informe = trim($this->request->getPost('informe'));
+            $estomago = trim($this->request->getPost('estomago'));
+            $duodeno = trim($this->request->getPost('duodeno'));
+            $esofago = trim($this->request->getPost('esofago'));
+            $conclusion = trim($this->request->getPost('conclusion'));
+            $terapeutico = trim($this->request->getPost('terapeutico'));
+            $cual = trim($this->request->getPost('cual'));
+            $biopsia = trim($this->request->getPost('biopsia'));
+            $frascos = $this->request->getPost('frascos');
+            $edad = $this->request->getPost('edad');
+            $afiliado = $this->request->getPost('afiliado');
 
+            // Validar datos requeridos
+            $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
+            foreach ($requiredFields as $field) {
+                if (empty($this->request->getPost($field))) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Falta el campo: ' . $field]);
+                }
+            }
+
+            // Crear carpetas
+            $nombreCarpetaBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', strtolower($nombrePaciente));
+            $dniCarpeta = preg_replace('/[^a-zA-Z0-9_-]/', '_', $dniPaciente);
+            $carpetaPaciente = $nombreCarpetaBase . '_' . $dniCarpeta;
+            $uploadPathBasePaciente = FCPATH . 'uploads/' . $carpetaPaciente . '/';
+
+            // ✅ Validación de existencia de carpeta por DNI
+            if (is_dir($uploadPathBasePaciente)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Ya existe una carpeta para el DNI: ' . $dniPaciente]);
+            }
+
+            $carpetaInforme = date('Ymd_His');
+            $uploadPathInforme = $uploadPathBasePaciente . $carpetaInforme . '/';
+
+            if (!is_dir($uploadPathInforme) && !mkdir($uploadPathInforme, 0777, true)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo crear carpeta: ' . $uploadPathInforme]);
+            }
+
+            // Procesar imágenes
+            $imagenesBase64 = [];
+            $archivos = $this->request->getFileMultiple('archivo');
+
+            foreach ($archivos as $archivo) {
+                if ($archivo->isValid() && !$archivo->hasMoved()) {
+                    $allowedMimeTypes = ['image/jpeg', 'image/png'];
+                    if (!in_array($archivo->getMimeType(), $allowedMimeTypes)) {
+                        return $this->response->setJSON(['success' => false, 'message' => 'Tipo de archivo no permitido: ' . $archivo->getClientMimeType()]);
+                    }
+                    $contenido = file_get_contents($archivo->getTempName());
+                    $base64 = base64_encode($contenido);
+                    $mime = $archivo->getMimeType();
+                    $imagenesBase64[] = 'data:' . $mime . ';base64,' . $base64;
+                } else if ($archivo->getError() !== UPLOAD_ERR_NO_FILE) {
+                    return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar imagen: ' . $archivo->getErrorString()]);
+                }
+            }
+
+            // Cobertura
+            $coberturaData = $this->CoberturasModel->find($idCobertura);
+            if (!$coberturaData) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Cobertura no encontrada para ID: ' . $idCobertura]);
+            }
+            $nombreCobertura = $coberturaData['nombre_cobertura'] ?? 'No especificada';
+
+            // Datos para PDF
+            $dataPdf = [
+                'fecha' => $fecha,
+                'tipo_informe' => $tipoInforme,
+                'nombre_paciente' => $nombrePaciente,
+                'fecha_nacimiento' => $fechaNacimiento,
+                'dni_paciente' => $dniPaciente,
+                'nombre_cobertura' => $nombreCobertura,
+                'mail_paciente' => $mailPaciente,
+                'medico' => $medico,
+                'motivo' => $motivo,
+                'informe' => $informe,
+                'estomago' => $estomago,
+                'duodeno' => $duodeno,
+                'esofago' => $esofago,
+                'conclusion' => $conclusion,
+                'terapeutico' => $terapeutico,
+                'cual' => $cual,
+                'biopsia' => $biopsia,
+                'frascos' => $frascos,
+                'edad' => $edad,
+                'afiliado' => $afiliado,
+                'imagenes' => $imagenesBase64,
+            ];
+
+            // Generar PDF
+            $pdfFileName = $this->generatePDF($dataPdf, $nombreCobertura, $uploadPathInforme);
+            $pdfPath = $uploadPathInforme . $pdfFileName;
+
+            if (!file_exists($pdfPath)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'El PDF no fue generado.']);
+            }
+
+            // Insertar en base de datos
+            $this->InformesModel->insert([
+                'nombre_paciente' => $nombrePaciente,
+                'dni_paciente' => $dniPaciente,
+                'fecha' => $fecha,
+                'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
+                'mail_paciente' => $mailPaciente,
+                'tipo_informe' => $tipoInforme,
+                'id_cobertura' => $idCobertura,
+            ]);
+
+            // Enviar correo
+            $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
+            $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
+            $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
+
+            if ($resultadoEnvio['success']) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
+            } else {
+                return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
+        }
+    }
     private function generatePDF($data, $cobertura, $outputPath)
     {
-        $dompdf = new \Dompdf\Dompdf();
-
-        // Armar bloque HTML de imágenes si existen
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
+    
+        $logo = base_url('images/logo.png');
+        $firma = base_url('images/firma.png');
+    
         $imagenesHtml = '';
         if (!empty($data['imagenes'])) {
-            $imagenesHtml .= "<div class='section'><div class='section-title'>IMÁGENES DEL ESTUDIO</div>";
+            $imagenesHtml .= "<div class='section'><div class='section-title1'><br><br>IMÁGENES DEL ESTUDIO</div>";
             foreach ($data['imagenes'] as $imgBase64) {
                 $imagenesHtml .= "<div style='margin: 10px 0; text-align: center;'>
-                                             <img src='{$imgBase64}' style='max-width: 450px; max-height: 500px; border: 1px solid #ccc; padding: 4px;'>
-                                         </div>";
+                    <img src='{$imgBase64}' style='max-width: 450px; max-height: 500px; border: 1px solid #ccc; padding: 4px;'>
+                </div>";
             }
             $imagenesHtml .= "</div>";
         }
-
-        // Armar HTML del PDF
+    
         $html = "
-         <html>
-         <head>
-             <style>
-                 body { font-family: Arial, sans-serif; font-size: 12px; }
-                 .header-box {
-                     border: 2px solid #000;
-                     padding: 15px;
-                     text-align: center;
-                     margin-bottom: 15px;
-                 }
-                 .header-box h1 { margin: 0; font-size: 20px; }
-                 .header-box h2 { margin: 5px 0; font-size: 16px; }
-                 .header-box h3 { margin: 5px 0; font-size: 14px; }
-                 .section { margin-bottom: 10px; }
-                 .section-title { font-weight: bold; margin-top: 10px; font-size: 14px; border-bottom: 1px solid #ccc; }
-                 .field { margin: 5px 0; }
-                 .footer-box {
-                     margin-top: 20px;
-                     padding: 10px;
-                     border-top: 1px solid #000;
-                     font-size: 11px;
-                 }
-             </style>
-         </head>
-         <body>
-             <div class='header-box'>
-                 <h1>CLINICA SANTA ISABEL</h1>
-                 <h2>VIDEOENDOSCOPIAS DIGESTIVAS</h2>
-                 <h3>DRA ESTRIN DIANA MN 84767 MP 334731</h3>
-                 <p>MEDICA ESPECIALISTA EN GASTROENTEROLOGIA, ENDOSCOPIAS DIGESTIVAS DIAGNOSTICAS Y TERAPEUTICAS</p>
-                 <p style='font-size:11px;'>
-                     <strong>ANESTESIOLOGOS:</strong><br>
-                     DR GARCIA ALBERTO DANIEL MN 58499 – DRA GARCIA MACCHI MARIANA – DR GIOVANETTI NICOLAS MN 140504<br>
-                     <strong>ASISTENTES:</strong><br>
-                     PALACIOS LAURA MN 3909 – POCZTER NADIA MN 8075 – MIRANDA ANDREA MN 10974 – GIRARDI MELISA MN 14342
-                 </p>
-             </div>
- 
-             <div class='section'>
-                 <div class='field'><strong>FECHA:</strong> {$data['fecha']}</div>
-                 <div class='field'><strong>TIPO DE ESTUDIO:</strong> {$data['tipo_informe']}</div>
-             </div>
- 
-             <div class='section'>
-                 <div class='section-title'>DATOS DEL PACIENTE</div>
-                 <div class='field'><strong>NOMBRE Y APELLIDO:</strong> {$data['nombre_paciente']}</div>
-                 <div class='field'><strong>FECHA DE NACIMIENTO:</strong> {$data['fecha_nacimiento']}</div>
-                 <div class='field'><strong>EDAD:</strong> {$data['edad']}</div>
-                 <div class='field'><strong>DNI:</strong> {$data['dni_paciente']}</div>
-                 <div class='field'><strong>COBERTURA:</strong> {$cobertura}</div>
-                 <div class='field'><strong>NUMERO DE AFILIADO:</strong> {$data['afiliado']}</div>
-                 <div class='field'><strong>MAIL:</strong> {$data['mail_paciente']}</div>
-                 <div class='field'><strong>MEDICO SOLICITANTE:</strong> {$data['medico']}</div>
-                 <div class='field'><strong>MOTIVO DEL ESTUDIO:</strong> {$data['motivo']}</div>
-             </div>
- 
-       <div class='section'>
-    <div class='section-title'>INFORME</div>
-    " . (strtoupper($data['tipo_informe']) === 'VEDA' ? "
-    <div class='field'><strong>Esófago:</strong> {$data['esofago']}</div>
-    <div class='field'><strong>Estómago:</strong> {$data['estomago']}</div>
-    <div class='field'><strong>Duodeno:</strong> {$data['duodeno']}</div>
-    " : "
-    <div class='field'><strong>Informe general:</strong> {$data['informe']}</div>
-    ") . "
-</div>
- 
-             <div class='section'>
-                 <div class='section-title'>CONCLUSIÓN</div>
-                 <div class='field'>{$data['conclusion']}</div>
-             </div>
- 
-             <div class='section'>
-                 <div class='section-title'>TERAPEUTICA / BIOPSIA</div>
-                 <div class='field'><strong>¿Se efectuó terapéutica?</strong> {$data['terapeutico']}</div>
-                 <div class='field'><strong>¿Cuál?</strong> {$data['cual']}</div>
-                 <div class='field'><strong>¿Se efectuó biopsia?</strong> {$data['biopsia']}</div>
-                 <div class='field'><strong>Cantidad de frascos:</strong> {$data['frascos']}</div>
-             </div>
- 
-             <div class='section'>
-                 <div class='section-title'>PATOLOGÍA</div>
-                 <p><strong>Patóloga:</strong> Dra Polina Angélica. Los resultados se retiran a partir de 15 días hábiles en Clínica Santa Isabel, ingreso por calle Lautaro, 1er piso, consultorios externos, con nombre y apellido del paciente. El trámite no es personal.</p>
-             </div>
- 
-             {$imagenesHtml}
- 
-             <div class='section'>
-                 <div class='section-title'>INSTRUCCIONES POST ESTUDIO</div>
-                 <ol style='font-size: 11px;'>
-                     <li>El estudio de colon puede provocar retención de gases... (acá sigue el texto completo que ya incluimos)</li>
-                     <li>Debe regresar acompañado a su domicilio...</li>
-                     <li>Comience con su dieta habitual...</li>
-                     <li>Comience con su medicación habitual...</li>
-                     <li>Si se le ha efectuado terapéutica endoscópica...</li>
-                     <li>Contactos: Dra Estrin Diana – 1134207000 / dianajudit@hotmail.com</li>
-                     <li>Secretaría de Endoscopias: Belén Chapuis – 1151825634 / secretariaendoscopias@gmail.com</li>
-                 </ol>
-             </div>
- 
-        <br><br/>
-        <br><br/>
-        
-             <div class='footer-box'>
-                 <p style='text-align:center; font-weight:bold;'>FIRMA DIGITAL Y SELLO</p>
-                 <p><strong>IMPORTANTE:</strong> Es imprescindible contar con este informe para la consulta con la Dra Estrin o con su médico de cabecera.</p>
-             </div>
-         </body>
-         </html>
-         ";
+        <!DOCTYPE html>
+        <html lang='es'>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    margin: 0;
+                    padding: 0;
+                    width: 100%;
+                }
+                .header-box {
+                    display: table;
+                    width: 100%;
+                    border: 2px solid #007bff;
+                    table-layout: fixed;
+                    padding: 20px;
+                    height: 10rem; /* ajustable según tamaño del logo */
+                }
+             .header-logo {
+              display: table-cell;
+                width: 15%;
+                text-align: left;
+                vertical-align: top;
+                position: relative;
+                height: 10rem;
+                }
+                .header-info {
+                margin-top:40px;
+                    display: table-cell;
+                    width: 85%;
+                    text-align: center;
+                    vertical-align: middle;
+                    font-size: 11px;
+                }
+            .logo-img {
+                margin-top: 10px;
+                width: 50px;
+                height: auto;
+                opacity: 0.5; /* Ajusta el valor entre 0 (transparente) y 1 (opaco) */
+                filter: alpha(opacity=50); /* Compatibilidad con navegadores antiguos */
+            }
 
-        // Renderizado y guardado
+            .logo-caption {
+                       
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                font-size: 8px;
+                color: #888;
+                text-align: left;
+                line-height: 1.2;
+                width: 100px;
+                }
+                .titulo-principal {
+                    font-size: 20px;
+                    text-align: center;
+                    font-weight: bold;
+                    margin: 20px 0;
+                    text-decoration: underline;
+                }
+                .section {
+                    margin-bottom: 15px;
+                }
+                .section-title, .section-title1 {
+                    font-size: 15px;
+                    font-weight: bold;
+                    margin-top: 10px;
+                    margin-bottom: 5px;
+                    text-decoration: underline;
+                }
+                .section-title {
+                    color: #004085;
+                }
+                .section-title1 {
+                    color: black;
+                }
+                .field {
+                    margin: 5px 0;
+                }
+                .instrucciones {
+                    color: red;
+                    font-size: 13px;
+                    font-weight: bold;
+                    margin-top: 15px;
+                }
+                .footer-box {
+                    margin-top: 30px;
+                    padding-top: 10px;
+                    border-top: 1px solid #000;
+                    font-size: 11px;
+                    text-align: center;
+                }
+                .doctor-name {
+                 color: #004085;
+                    font-size: 18px;
+                    font-weight: bold;
+
+                }
+            </style>
+        </head>
+        <body>
+            <div class='header-box'>
+                <div class='header-logo'>
+                    <img src='{$logo}' class='logo-img' alt='Logo Clínica Santa Isabel'>
+                    <div class='logo-caption'>
+                        CLÍNICA SANTA ISABEL<br>
+                        VIDEOBRONCOSCOPIAS DIGESTIVAS
+                    </div>
+                </div>
+                <div class='header-info'>
+                    <div class='doctor-name'>DRA. ESTRIN DIANA</div>
+                    MP 6747 MN 73921<br>
+                    MEDICA ESPECIALISTA EN GASTROENTEROLOGIA, ENDOSCOPIAS DIGESTIVAS DIAGNOSTICAS Y TERAPEUTICAS<br>
+                     <strong>ANESTESIOLOGOS:</strong><br>
+                     DR GARCIA ALBERTO DANIEL MN 58499 – DRA GARCIA MACCHI MARIANA – <br> DR GIOVANETTI NICOLAS MN 140504<br>
+                     <strong>ASISTENTES:</strong><br>
+                     PALACIOS LAURA MN 3909 – POCZTER NADIA MN 8075 – MIRANDA ANDREA MN 10974 – <br>GIRARDI MELISA MN 14342
+                </div>
+            </div>
+    
+            <div class='titulo-principal'><br>INFORME MÉDICO<br><br></div>
+    
+            <div class='section'>
+                <div class='field'><strong>FECHA:</strong> {$data['fecha']}</div>
+                <div class='field'><strong>TIPO DE ESTUDIO:</strong> {$data['tipo_informe']}</div>
+            </div>
+    
+            <div class='section'>
+                <div class='section-title1'>DATOS DEL PACIENTE</div>
+                <div class='field'><strong>NOMBRE:</strong> {$data['nombre_paciente']}</div>
+                <div class='field'><strong>FECHA DE NACIMIENTO:</strong> {$data['fecha_nacimiento']}</div>
+                <div class='field'><strong>EDAD:</strong> {$data['edad']}</div>
+                <div class='field'><strong>DNI:</strong> {$data['dni_paciente']}</div>
+                <div class='field'><strong>COBERTURA:</strong> {$cobertura}</div>
+                <div class='field'><strong>AFILIADO N°:</strong> {$data['afiliado']}</div>
+                <div class='field'><strong>MAIL:</strong> {$data['mail_paciente']}</div>
+                <div class='field'><strong>MÉDICO SOLICITANTE:</strong> {$data['medico']}</div>
+                <div class='field'><strong>MOTIVO DEL ESTUDIO:</strong> {$data['motivo']}</div>
+            </div>
+    
+            <div class='section'>
+                <div class='section-title'>INFORME</div>" .
+                (strtoupper($data['tipo_informe']) === 'VEDA' ? "
+                    <div class='field'><strong>Esófago:</strong> {$data['esofago']}</div>
+                    <div class='field'><strong>Estómago:</strong> {$data['estomago']}</div>
+                    <div class='field'><strong>Duodeno:</strong> {$data['duodeno']}</div>" :
+                    "<div class='field'><strong>Informe general:</strong> {$data['informe']}</div>") .
+            "</div>
+    
+            <div class='section'>
+                <div class='section-title'>CONCLUSIÓN</div>
+                <div class='field'>{$data['conclusion']}</div>
+            </div>
+    
+            <div class='section'>
+                <div class='section-title1'>TERAPÉUTICA Y BIOPSIA</div>
+                <div class='field'><strong>¿Se efectuó terapéutica?:</strong> {$data['terapeutico']}</div>
+                <div class='field'><strong>¿Cuál?:</strong> {$data['cual']}</div>
+                <div class='field'><strong>¿Se efectuó biopsia?:</strong> {$data['biopsia']}</div>
+                <div class='field'><strong>Frascos:</strong> {$data['frascos']}</div>
+            </div>
+    
+            <div class='section'>
+                <div class='section-title1'>PATOLOGÍA</div>
+                <p>Patóloga: Dra Polina Angélica. Resultados disponibles a partir de 15 días hábiles en Clínica Santa Isabel. Ingreso por calle Lautaro, 1er piso. No es trámite personal.</p>
+            </div>
+    <br><br>
+            {$imagenesHtml}
+    
+            <div class='instrucciones'><br><br>INSTRUCCIONES POSTERIORES AL ESTUDIO</div>
+        <ol style='font-size: 11px;'>
+                    <li>El estudio de colon puede provocar retención de gases, estos se evacuarán espontáneamente. Si usted presentara dolor cólico, podrá tomar un antiespasmódico simple (sertal o buscapina). Si el dolor persiste, asocia fiebre, vómitos o sangrado, póngase en contacto con la Dra. Estrin o, en su defecto, con la clínica o guardia de su cobertura médica.</li>
+                    <li>Debe regresar acompañado a su domicilio, descansar el resto del día. No debe consumir alcohol, efectuar actividad física, conducir vehículos, trabajar o efectuar actividades complejas que requieran la indemnidad de sus funciones cognitivas.</li>
+                    <li>Comience con su dieta habitual al llegar a su domicilio, preferentemente con líquidos no gasificados, alimentos sencillos, poco condimentados y progéselos en función de su tolerancia.</li>
+                    <li>Comience con su medicación habitual (si tiene alguna indicada) dentro de la hora siguiente a la realización del estudio. Evite consumir sedantes durante las 24 horas siguientes.</li>
+                    <li>Si se le ha efectuado terapéutica endoscópica (polipectomías, mucosectomías, dilataciones, marcaciones), podrá indicársele evitar el uso de aspirinas, antiinflamatorios, antiagregantes o anticoagulantes según cada caso en particular.</li>
+                </ol>
+    
+            <div class='section'>
+                <div class='section-title1'>CONTACTOS</div>
+                <ul style='font-size: 11px;'>
+                    <li>Dra Estrin Diana – 1134207000 – dianajudit@hotmail.com</li>
+                    <li>Secretaría – Belén Chapuis – 1151825634 – secretariaendoscopias@gmail.com</li>
+                </ul>
+            </div>
+    
+            <div class='footer-box'>
+                <img src='{$firma}' style='width: 150px;' alt='Firma digital'><br>
+                <p><strong>FIRMA DIGITAL Y SELLO</strong></p>
+                <p><strong class='instrucciones'>IMPORTANTE:</strong> Lleve este informe a su próxima consulta médica.</p>
+            </div>
+        </body>
+        </html>";
+    
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-
+    
         $nombrePacienteSanitized = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'] ?? 'sin_nombre'));
         $fechaSanitized = str_replace('-', '_', $data['fecha'] ?? 'sin_fecha');
         $timestamp = time();
         $fileName = "informe_{$fechaSanitized}_{$timestamp}.pdf";
         $filePath = $outputPath . $fileName;
-
+    
         file_put_contents($filePath, $dompdf->output());
-
+    
         return $fileName;
     }
+    
+    
+
 
     private function enviarCorreoPHPMailer($destinatario, $asunto, $mensaje, $adjuntos = [])
     {
