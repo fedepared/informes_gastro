@@ -3,10 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\CoberturasModel;
+use CodeIgniter\HTTP\ResponseInterface;
 
 class Coberturas extends BaseController
 {
-    private  $coberturasModel;
+    private $coberturasModel;
+
     public function __construct()
     {
         $this->coberturasModel = new CoberturasModel();
@@ -14,88 +16,169 @@ class Coberturas extends BaseController
 
     public function getCoberturas()
     {
+        try {
 
-        $resultado = $this->coberturasModel->findAll();
-
-        echo 'get all';
-        echo '<pre>';
-        print_r($resultado);
-        echo '</pre>';
+            // $data['coberturas'] =  $this->coberturasModel->findAll();
+            // return view('coberturas', $data);
+            $coberturas = $this->coberturasModel->findAll(); // Obtiene todas las coberturas
+            return $this->response->setJSON($coberturas);
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     public function getByIdCoberturas($id)
     {
-        $resultado = $this->coberturasModel->find($id);
+        try {
+            $resultado = $this->coberturasModel->find($id);
 
-        if (!empty($resultado)) {
-            echo 'getbyid';
-            echo '<pre>';
-            print_r($resultado);
-            echo '</pre>';
-            return $resultado;
-        } else {
-            echo 'no se encontro cobertura  ';
-            return null;
+            if (!empty($resultado)) {
+                return [
+                    'status' => 'success',
+                    'data' => $resultado
+                ];
+            } else {
+                return [
+                    'status' => 'error',
+                    'message' => 'No se encontró la cobertura con el ID proporcionado.'
+                ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
         }
     }
 
     public function postCobertura()
     {
+        try {
+            $nombreCobertura = trim($this->request->getPost('nombre_cobertura'));
 
+            $data = [
+                'nombre_cobertura' => $nombreCobertura
+            ];
 
-        $data = [
-            'nombre_cobertura' => 'iosfa'
-        ];
+            // Verifica si ya existe una cobertura con el mismo nombre
+            $coberturaExistente = $this->coberturasModel
+                ->where('nombre_cobertura', $nombreCobertura)
+                ->first();
 
-        $this->coberturasModel->insert($data);
+            if ($coberturaExistente) {
+                return $this->response->setStatusCode(409)->setJSON(['status' => 'error', 'message' => 'Ya existe una cobertura con el mismo nombre.']);
+            }
 
-        echo 'Post';
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
+            $insertedId = $this->coberturasModel->insert($data);
+
+            if ($insertedId) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Cobertura creada exitosamente.'
+                ]);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Error al crear la cobertura.']);
+            }
+
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON(['status' => 'error', 'message' => 'Ocurrió un error al crear la cobertura: ' . $e->getMessage()]);
+        }
     }
+
     public function deleteCobertura($id)
     {
-       
-        $antes = $this->getByIdCoberturas($id);
+        try {
+            log_message('debug', 'ID recibido en deleteCobertura: ' . print_r($id, true));
 
+            // Validar que el ID sea válido
+            if (empty($id) || !is_numeric($id)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'ID inválido proporcionado.'
+                ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
+            }
 
-        $this->coberturasModel->delete($id);
+            // Verificar si la cobertura existe antes de eliminar
+            $cobertura = $this->coberturasModel->find($id);
 
-        $despues = $this->getByIdCoberturas($id);
+            if (!$cobertura) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Cobertura no encontrada.'
+                ])->setStatusCode(ResponseInterface::HTTP_NOT_FOUND);
+            }
 
-        echo '<pre>';
-        echo 'Delete';
-        echo '<pre>';
-        echo 'antes';
-        print_r($antes);
+            // Intentar eliminar la cobertura
+            $resultado = $this->coberturasModel->delete($id);
 
-        echo 'despues';
-        print_r($despues);
-        echo '</pre>';
+            log_message('debug', 'Resultado de la eliminación: ' . print_r($resultado, true));
+
+            // Verificar si la eliminación fue exitosa
+            if ($resultado) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Cobertura eliminada exitosamente.'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'No se pudo eliminar la cobertura.'
+                ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+            }
+        } catch (\Exception $e) {
+            // Capturar cualquier error inesperado y devolverlo
+            log_message('error', 'Error al intentar eliminar cobertura: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Hubo un error al procesar la solicitud: ' . $e->getMessage()
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     public function updateCobertura($id)
     {
+        try {
+            // Verifica si la cobertura con el ID existe
+            $coberturaExistentePorId = $this->coberturasModel->find($id);
+            if (!$coberturaExistentePorId) {
+                return $this->response->setStatusCode(404)->setJSON(['error' => 'Cobertura no encontrada.']);
+            }
 
-        $antes = $this->getByIdCoberturas($id);
+            // Recibe los datos del formulario (para JSON)
+            $data = $this->request->getJSON();
+            $nombreCobertura = trim($data->nombre_cobertura ?? ''); // Asegúrate de que 'nombre_cobertura' exista
 
-        $data = [
-            'nombre_cobertura' => 'iosfa modificado'
-        ];
+            // echo $nombreCobertura; // Para depuración
 
+            // Verifica si ya existe otra cobertura con el mismo nombre (ignorando la cobertura actual)
+            $coberturaExistentePorNombre = $this->coberturasModel
+                ->where('nombre_cobertura', $nombreCobertura)
+                ->where('id_cobertura !=', $id) // Excluye la cobertura que se está editando
+                ->first();
 
-        $this->coberturasModel->update($id, $data);
-        $despues = $this->getByIdCoberturas($id);
+            if ($coberturaExistentePorNombre) {
+                return $this->response->setStatusCode(409)->setJSON(['error' => 'Ya existe una cobertura con el mismo nombre.']);
+            }
 
+            // Prepara los datos para la actualización
+            $updateData = [
+                'nombre_cobertura' => $nombreCobertura
+            ];
 
-        echo 'Update';
-        echo '<pre>';
-        echo 'antes';
-        print_r($antes);
+            // Actualiza la cobertura
+            $updated = $this->coberturasModel->update($id, $updateData);
 
-        echo 'despues';
-        print_r($despues);
-        echo '</pre>';
+            if ($updated) {
+                return $this->response->setJSON(['message' => 'Cobertura modificada exitosamente.']);
+            } else {
+                return $this->response->setStatusCode(500)->setJSON(['error' => 'Error al actualizar la cobertura.']);
+            }
+
+        } catch (\Exception $e) {
+            return $this->response->setStatusCode(500)->setJSON(['error' => $e->getMessage()]);
+        }
     }
 }

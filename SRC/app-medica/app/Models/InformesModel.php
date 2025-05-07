@@ -11,8 +11,90 @@ class InformesModel extends Model
     protected $primaryKey = 'id_informe';
 
     protected $returnType     = 'array';
-    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura'];
+    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura','id_informe','dni_paciente','tipo_informe'];
     
+
+
+    public function getInformesWithFiltros($nombre = null, $fecha_desde = null, $fecha_hasta = null)
+    {
+        $builder = $this->db->table($this->table);
+    
+        // Unimos con la tabla de coberturas si es necesario (asumo que ya lo haces en getInformesWithCoberturas)
+        $builder->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura'); // Ajusta el nombre de la tabla y las claves si es diferente
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre, 'both'); // 'both' para buscar coincidencias en cualquier parte del nombre
+        }
+    
+        if ($fecha_desde && $fecha_hasta) {
+            $builder->where('fecha >=', $fecha_desde);
+            $builder->where('fecha <=', $fecha_hasta);
+        } elseif ($fecha_desde) {
+            $builder->where('fecha >=', $fecha_desde);
+        } elseif ($fecha_hasta) {
+            $builder->where('fecha <=', $fecha_hasta);
+        }
+    
+        return $builder->get()->getResultArray();
+    }
+
+
+    public function countInformesFiltrados($nombre = null, $desde = null, $hasta = null)
+    {
+        $builder = $this->select('COUNT(*) as total');
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre);
+        }
+    
+        if ($desde) {
+            $builder->where('fecha >=', $desde);
+        }
+    
+        if ($hasta) {
+            $builder->where('fecha <=', $hasta);
+        }
+    
+        return $builder->get()->getRow()->total;
+    }
+    
+
+    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null, $limit = 10, $offset = 0)
+    {
+        $builder = $this->select('informes.*, coberturas.nombre_cobertura')
+            ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura', 'left');
+    
+        if ($nombre) {
+            $builder->like('nombre_paciente', $nombre);
+        }
+    
+        if ($desde) {
+            $builder->where('fecha >=', $desde);
+        }
+    
+        if ($hasta) {
+            $builder->where('fecha <=', $hasta);
+        }
+    
+        // Asegurarse de que limit y offset sean enteros
+        $limit = (int) $limit;
+        $offset = (int) $offset;
+    
+        return $builder
+            ->orderBy('fecha', 'DESC')
+            ->limit($limit)
+            ->offset($offset)
+            ->get()
+            ->getResult();
+    }
+    
+    
+
+
+
+
+
+
 
     
     public function getInformesWithCoberturas()
