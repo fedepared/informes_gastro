@@ -311,9 +311,12 @@ function confirmarRecuperacion() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
+               
                 if (data.data.pidio_cambio === "1") {
+                    localStorage.setItem('expiracion', data.data.expiracion); 
             window.location.href = "reset";
         } else {
+            localStorage.setItem('expiracion', data.data.expiracion); 
             window.location.href = "formulario";
         }
             } else {

@@ -52,7 +52,6 @@ class Filters extends BaseConfig
             ],
             'except' => [
                 'login',
-                
                
             ],
         ],

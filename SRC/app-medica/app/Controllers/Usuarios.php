@@ -7,9 +7,10 @@ use CodeIgniter\HTTP\ResponseInterface;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use App\Models\UsuariosModel;
+use Config\Services;
+use Config\Session;
 
-
-use CodeIgniter\Controller; // Asegúrate de que estás extendiendo Controller
+use CodeIgniter\Controller; 
 use CodeIgniter\API\ResponseTrait; 
 
 class Usuarios extends BaseController
@@ -21,6 +22,16 @@ class Usuarios extends BaseController
     {
         $this->UsuariosModel = new UsuariosModel();
     }
+    
+ public function verificarSesion()
+{
+   if (!session()->has('id_usuario')) {
+        return $this->response->setJSON(['status' => 'expirado']);
+    }
+
+    return $this->response->setJSON(['status' => 'activo']);
+}
+
 
     private function enviarCorreoPHPMailer($to, $subject, $message)
     {
@@ -270,11 +281,17 @@ public function verificarYActualizarPassword()
             ])->setStatusCode(ResponseInterface::HTTP_UNAUTHORIZED);
         }
 
+
+        $sessionExpiration = (new Session())->expiration;
+        
+        session()->set('expiracion', time() + $sessionExpiration);
+        
         //logica token carpetas usadas , config ->filters  y Filters -> authGuard
         \Config\Services::session()->set([
             'usuario_logueado' => true, // esta es la clave que revisa el filtro
             'id_usuario' => $usuario['id_usuario'],
-            'nombre_usuario' => $usuario['nombre_usuario']
+            'nombre_usuario' => $usuario['nombre_usuario'],
+            'expiracion' => time() + $sessionExpiration 
         ]);
         // Fin logica token        
 
@@ -288,6 +305,7 @@ public function verificarYActualizarPassword()
                 'nombre_usuario' => $usuario['nombre_usuario'],
                 'mail' => $usuario['mail'],
                 'pidio_cambio' => $usuario['pidio_cambio'],
+                'expiracion' => time() + $sessionExpiration 
             ]
         ])->setStatusCode(ResponseInterface::HTTP_OK);
     }
@@ -304,6 +322,7 @@ public function verificarYActualizarPassword()
     public function logout()
     {
         session()->destroy();
+        
         return redirect()->to('/login');
     }
     

@@ -275,9 +275,10 @@ public function postInforme()
             'tipo_informe' => $tipoInforme,
             'id_cobertura' => $idCobertura,
         ]);
+        $fechaFormateada = \DateTime::createFromFormat('Y-m-d', $fecha)->format('d-m-Y');
 
         // Enviar correo
-        $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fecha;
+        $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fechaFormateada;
         $mensaje = '<p>Estimado/a ' . $nombrePaciente . ',</p><p>Se adjunta su informe médico.</p>';
         $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
 

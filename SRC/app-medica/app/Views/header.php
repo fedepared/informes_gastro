@@ -60,4 +60,37 @@
 
     </header>
 </body>
+ <script>
+//         function verificarSesion() {
+//      fetch('<?= site_url('/usuarios/verificarSesion'); ?>')
+//                 .then(response => response.json())
+//                 .then(data => {
+//                     if (data.status === 'expirado') {
+//                         window.location.href = '<?= site_url('/error'); ?>';
+//                     }
+//                 })
+//                 .catch(err => {
+//                     console.error('Error al verificar sesión:', err);
+//                     // Redirige en caso de error en la petición
+//                     window.location.href = '<?= site_url('/error'); ?>';
+//                 });
+// }
+
+// setInterval(verificarSesion, 5000);
+// Función para verificar la expiración
+function checkSessionExpiration() {
+    const expiration = localStorage.getItem('expiracion');
+    const currentTime = Math.floor(Date.now() / 1000); 
+    
+    
+    if (expiration && currentTime > expiration) {
+        localStorage.clear();
+        window.location.href = '<?= site_url('/error'); ?>'; 
+    }
+}
+
+setInterval(checkSessionExpiration, 10000);
+
+checkSessionExpiration();
+</script>
 </html>

@@ -14,7 +14,7 @@ $routes->get('/reportes', 'Home::reportes');
 $routes->get('/reset', 'Home::resetpass');
 $routes->get('/error', 'Home::error');
 // fin rutas view
-
+$routes->get('/usuarios/verificarSesion', 'Usuarios::verificarSesion');
 $routes->get('/logout', 'Usuarios::logout');
 $routes->put('/cambio', 'Usuarios::cambiarPassword');
 $routes->post('/login', 'Usuarios::login');
