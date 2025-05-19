@@ -282,20 +282,18 @@ public function verificarYActualizarPassword()
         }
 
 
-        $sessionExpiration = (new Session())->expiration;
-        
-        session()->set('expiracion', time() + $sessionExpiration);
         
         //logica token carpetas usadas , config ->filters  y Filters -> authGuard
         \Config\Services::session()->set([
             'usuario_logueado' => true, // esta es la clave que revisa el filtro
             'id_usuario' => $usuario['id_usuario'],
             'nombre_usuario' => $usuario['nombre_usuario'],
-            'expiracion' => time() + $sessionExpiration 
+            
         ]);
         // Fin logica token        
 
-
+        $sessionExpiration =  config('Session')->expiration;
+        session()->set('expiracion', time() + $sessionExpiration);
         // Si las credenciales son correctas, devolver una respuesta de éxito
         return $this->response->setJSON([
             'status' => 'success',
@@ -318,7 +316,7 @@ public function verificarYActualizarPassword()
         return 'JWT_TOKEN_GENERADO';
     }
     
-    
+
     public function logout()
     {
         session()->destroy();
