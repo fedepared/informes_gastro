@@ -21,7 +21,7 @@ $routes->post('/login', 'Usuarios::login');
 $routes->get('/usuarios', 'Usuarios::getUsuarios');
 $routes->get('/usuario/(:num)', 'Usuarios::getByIdUsuarios/$1');
 $routes->post('/usuario/alta', 'Usuarios::postUsuarios');
-$routes->get('/usuario/editar/(:num)', 'Usuarios::updateUsuarios/$1');
+$routes->put('/usuario/editar/(:num)', 'Usuarios::updateUsuarios/$1');
 $routes->get('/usuario/borrar/(:num)', 'Usuarios::deleteUsuarios/$1');
 
 
@@ -34,7 +34,7 @@ $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
 $routes->get('/mai', 'Informes::enviarCorreoPrueba');
 $routes->get('/descargar-archivo', 'Informes::descargarInformeCompleto');
 
-$routes->get('/coberturas', 'Coberturas::getCoberturas');
+$routes->get('/coberturas', 'Coberturas::getCoberturasFilter');
 $routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
 $routes->post('/cobertura/alta', 'Coberturas::postCobertura'); // Cambiado a POST
 $routes->put('/cobertura/editar/(:num)', 'Coberturas::updateCobertura/$1'); // Cambiado a PUT
