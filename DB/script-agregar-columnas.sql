@@ -1,6 +1,7 @@
 ALTER TABLE `informes` 
 ADD COLUMN `fecha_nacimiento_paciente` DATE NULL AFTER `id_cobertura`,
 ADD COLUMN `numero_afiliado` INT NULL AFTER `fecha_nacimiento_paciente`,
+  ADD COLUMN `edad` INT NULL AFTER `numero_afiliado`,
 ADD COLUMN `medico_envia_estudio` VARCHAR(100) NULL AFTER `numero_afiliado`,
 ADD COLUMN `motivo_estudio` VARCHAR(100) NULL AFTER `medico_envia_estudio`,
 ADD COLUMN `estomago` VARCHAR(100) NULL AFTER `motivo_estudio`,
