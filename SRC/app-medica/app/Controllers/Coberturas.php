@@ -30,6 +30,49 @@ class Coberturas extends BaseController
         }
     }
 
+
+        public function getCoberturasFilter()
+    {
+        try {
+            // 1. Obtener el parámetro de búsqueda 'nombre' del query string
+            // Si el parámetro 'nombre' no existe, $nombreFiltro será null
+            $nombreFiltro = $this->request->getVar('nombre');
+
+            $coberturas = [];
+
+            if ($nombreFiltro) {
+                // 2. Si se proporcionó un nombre, aplicar el filtro like
+                // 'like' busca coincidencias parciales (ej. 'Osde' encontrará 'Osde 210', 'Osde 310')
+                $coberturas = $this->coberturasModel
+                                     ->like('nombre_cobertura', $nombreFiltro)
+                                     ->findAll();
+            } else {
+                // 3. Si no se proporcionó un nombre, obtener todas las coberturas
+                $coberturas = $this->coberturasModel->findAll();
+            }
+
+            // Si no se encontraron coberturas con el filtro, puedes enviar una respuesta 404 o un array vacío
+            if (empty($coberturas) && $nombreFiltro) {
+                return $this->response->setJSON([
+                    'status' => 'success', // Consideramos un éxito que la búsqueda no haya devuelto resultados
+                    'message' => 'No se encontraron coberturas que coincidan con el nombre proporcionado.',
+                    'data' => []
+                ])->setStatusCode(ResponseInterface::HTTP_OK); // 200 OK aunque el resultado sea vacío
+            }
+
+
+            // Devolver las coberturas en formato JSON
+            return $this->response->setJSON($coberturas)->setStatusCode(ResponseInterface::HTTP_OK);
+
+        } catch (\Exception $e) {
+            // Capturar cualquier excepción y devolver un error 500
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Ocurrió un error al obtener las coberturas: ' . $e->getMessage()
+            ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
     public function getByIdCoberturas($id)
     {
         try {
