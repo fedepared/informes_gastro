@@ -11,7 +11,10 @@ class InformesModel extends Model
     protected $primaryKey = 'id_informe';
 
     protected $returnType     = 'array';
-    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura','id_informe','dni_paciente','tipo_informe'];
+    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura',
+    'id_informe','dni_paciente','tipo_informe','fecha_nacimiento_paciente','numero_afiliado',
+    'medico_envia_estudio','motivo_estudio','estomago','duodeno','esofago','conclusion','efectuo_terapeutica',
+    'tipo_terapeutica','efectuo_biopsia','fracos_biopsia','informe','edad'];
     
 
 

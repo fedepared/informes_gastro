@@ -158,26 +158,28 @@ class Informes extends BaseController
     {
         try {
             // Obtener datos del request
-            $fecha = $this->request->getPost('fecha');
-            $tipoInforme = trim($this->request->getPost('tipo_informe'));
-            $nombrePaciente = trim($this->request->getPost('nombre_paciente'));
-            $fechaNacimiento = $this->request->getPost('fecha_nacimiento');
-            $dniPaciente = trim($this->request->getPost('dni_paciente'));
-            $idCobertura = $this->request->getPost('id_cobertura');
-            $mailPaciente = trim($this->request->getPost('mail_paciente'));
-            $medico = trim($this->request->getPost('medico'));
-            $motivo = trim($this->request->getPost('motivo'));
-            $informe = trim($this->request->getPost('informe'));
+            $nombrePaciente = trim($this->request->getPost('nombre_paciente')); //
+            $fecha = $this->request->getPost('fecha'); //
+            $tipoInforme = trim($this->request->getPost('tipo_informe')); //
+            $mailPaciente = trim($this->request->getPost('mail_paciente')); //
+            $dniPaciente = trim($this->request->getPost('dni_paciente')); //
+            $idCobertura = $this->request->getPost('id_cobertura'); //
+            $fechaNacimiento = $this->request->getPost('fecha_nacimiento_paciente');
+            $afiliado = $this->request->getPost('numero_afiliado');
+            $medico = trim($this->request->getPost('medico_envia_estudio'));
+            $motivo = trim($this->request->getPost('motivo_estudio'));
             $estomago = trim($this->request->getPost('estomago'));
             $duodeno = trim($this->request->getPost('duodeno'));
             $esofago = trim($this->request->getPost('esofago'));
             $conclusion = trim($this->request->getPost('conclusion'));
-            $terapeutico = trim($this->request->getPost('terapeutico'));
-            $cual = trim($this->request->getPost('cual'));
-            $biopsia = trim($this->request->getPost('biopsia'));
-            $frascos = $this->request->getPost('frascos');
+            $terapeutico = trim($this->request->getPost('efectuo_terapeutica'));
+            $cual = trim($this->request->getPost('tipo_terapeutica'));
+            $biopsia = trim($this->request->getPost('efectuo_biopsia'));
+            $frascos = $this->request->getPost('fracos_biopsia');
+            $informe = trim($this->request->getPost('informe'));
             $edad = $this->request->getPost('edad');
-            $afiliado = $this->request->getPost('afiliado');
+
+
 
             // Validar campos obligatorios
             $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
@@ -209,7 +211,9 @@ class Informes extends BaseController
             // Procesar imágenes
             $imagenesBase64 = [];
             $archivos = $this->request->getFileMultiple('archivo');
-
+            if ($archivos === null) {
+                $archivos = []; // Si no hay archivos, inicializa como un array vacío para evitar el error de foreach
+            }
             foreach ($archivos as $archivo) {
                 if ($archivo->isValid() && !$archivo->hasMoved()) {
                     $allowedMimeTypes = ['image/jpeg', 'image/png'];
@@ -268,14 +272,29 @@ class Informes extends BaseController
             // Guardar en base de datos
             $this->InformesModel->insert([
                 'nombre_paciente' => $nombrePaciente,
-                'dni_paciente' => $dniPaciente,
                 'fecha' => $fecha,
-                'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
-                'mail_paciente' => $mailPaciente,
                 'tipo_informe' => $tipoInforme,
+                'mail_paciente' => $mailPaciente,
+                'dni_paciente' => $dniPaciente,
+                'url_archivo' => 'uploads/' . $carpetaPaciente . '/' . $carpetaInforme . '/' . $pdfFileName,
                 'id_cobertura' => $idCobertura,
+                'fecha_nacimiento_paciente' => $fechaNacimiento,
+                'numero_afiliado' => $afiliado,
+                'medico_envia_estudio' => $medico,
+                'motivo_estudio' => $motivo,
+                'estomago' => $estomago,
+                'duodeno' => $duodeno,
+                'esofago' => $esofago,
+                'conclusion' => $conclusion,
+                'efectuo_terapeutica' => $terapeutico,
+                'tipo_terapeutica' => $cual,
+                'efectuo_biopsia'  => $biopsia,
+                'fracos_biopsia' => $frascos,
+                'informe' => $informe,
+                'edad' => $edad,
             ]);
             $fechaFormateada = \DateTime::createFromFormat('Y-m-d', $fecha)->format('d-m-Y');
+
 
             // Enviar correo
             $asunto = 'Informe Médico - ' . $tipoInforme . ' - ' . $fechaFormateada;
@@ -283,47 +302,47 @@ class Informes extends BaseController
             $resultadoEnvio = $this->enviarCorreoPHPMailer($mailPaciente, $asunto, $mensaje, [$pdfPath]);
 
             if ($resultadoEnvio['success']) {
-                return $this->response->setJSON(['success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
+                return $this->response->setJSON([ 'data_post' => $this->request->getPost(), 'success' => true, 'message' => 'Informe guardado y correo enviado correctamente.']);
             } else {
                 return $this->response->setJSON(['success' => false, 'message' => 'Informe guardado, pero hubo un error al enviar el correo: ' . $resultadoEnvio['message']]);
             }
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
+            return $this->response->setJSON(['data_files' => $archivo, 'data_post' => $this->request->getPost(), 'success' => false, 'message' => 'Error en postInforme: ' . $e->getMessage()]);
         }
     }
 
 
-private function generatePDF($data, $cobertura, $outputPath)
-{
-    $options = new \Dompdf\Options();
-    $options->set('isRemoteEnabled', true);
-    $dompdf = new \Dompdf\Dompdf($options);
+    private function generatePDF($data, $cobertura, $outputPath)
+    {
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
 
-    $logo = base_url('images/logo.png');
-    $firma = base_url('images/firma.png');
+        $logo = base_url('images/logo.png');
+        $firma = base_url('images/firma.png');
 
-    $imagenesHtml = '';
-    if (!empty($data['imagenes'])) {
-        $imagenesHtml .= "<div class='section'><div class='section-title1'><br><br>IMÁGENES DEL ESTUDIO</div>";
-        foreach ($data['imagenes'] as $imgBase64) {
-            $imagenesHtml .= "<div style='margin: 10px 0; text-align: center;'>
+        $imagenesHtml = '';
+        if (!empty($data['imagenes'])) {
+            $imagenesHtml .= "<div class='section'><div class='section-title1'><br><br>IMÁGENES DEL ESTUDIO</div>";
+            foreach ($data['imagenes'] as $imgBase64) {
+                $imagenesHtml .= "<div style='margin: 10px 0; text-align: center;'>
                 <img src='{$imgBase64}' style='max-width: 450px; max-height: 500px; border: 1px solid #ccc; padding: 4px;'>
             </div>";
+            }
+            $imagenesHtml .= "</div>";
         }
-        $imagenesHtml .= "</div>";
-    }
 
-    // Armamos la sección de PATOLOGÍA solo si biopsia es "SI"
-    $patologiaHtml = '';
-    if (strtoupper(trim($data['biopsia'])) === 'SI') {
-        $patologiaHtml = "
+        // Armamos la sección de PATOLOGÍA solo si biopsia es "SI"
+        $patologiaHtml = '';
+        if (strtoupper(trim($data['biopsia'])) === 'SI') {
+            $patologiaHtml = "
         <div class='section'>
             <div class='section-title1'>PATOLOGÍA</div>
             <p><strong>Patóloga: Dra Polina Angélica.</strong> Resultados disponibles a partir de 15 días hábiles en Clínica Santa Isabel. Ingreso por calle Lautaro, 1er piso. No es trámite personal.</p>
         </div>";
-    }
+        }
 
-    $html = "
+        $html = "
 <!DOCTYPE html>
 <html lang='es'>
 <head>
@@ -388,12 +407,12 @@ private function generatePDF($data, $cobertura, $outputPath)
 
     <div class='section'>
         <div class='section-title'>INFORME</div>" .
-        (strtoupper($data['tipo_informe']) === 'VEDA' ? "
+            (strtoupper($data['tipo_informe']) === 'VEDA' ? "
             <div class='field'><strong>Esófago:</strong> {$data['esofago']}</div>
             <div class='field'><strong>Estómago:</strong> {$data['estomago']}</div>
             <div class='field'><strong>Duodeno:</strong> {$data['duodeno']}</div>" :
-            "<div class='field'><strong>Informe general:</strong> {$data['informe']}</div>") .
-        "</div>
+                "<div class='field'><strong>Informe general:</strong> {$data['informe']}</div>") .
+            "</div>
 
     <div class='section'>
         <div class='section-title'>CONCLUSIÓN</div>
@@ -437,20 +456,20 @@ private function generatePDF($data, $cobertura, $outputPath)
 </body>
 </html>";
 
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
 
-    $nombrePacienteSanitized = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'] ?? 'sin_nombre'));
-    $fechaSanitized = str_replace('-', '_', $data['fecha'] ?? 'sin_fecha');
-    $timestamp = time();
-    $fileName = "informe_{$fechaSanitized}_{$timestamp}.pdf";
-    $filePath = $outputPath . $fileName;
+        $nombrePacienteSanitized = preg_replace('/[^A-Za-z0-9]/', '_', strtolower($data['nombre_paciente'] ?? 'sin_nombre'));
+        $fechaSanitized = str_replace('-', '_', $data['fecha'] ?? 'sin_fecha');
+        $timestamp = time();
+        $fileName = "informe_{$fechaSanitized}_{$timestamp}.pdf";
+        $filePath = $outputPath . $fileName;
 
-    file_put_contents($filePath, $dompdf->output());
+        file_put_contents($filePath, $dompdf->output());
 
-    return $fileName;
-}
+        return $fileName;
+    }
 
 
 
@@ -575,31 +594,23 @@ private function generatePDF($data, $cobertura, $outputPath)
         echo 'Informe eliminado';
     }
 
-    /**
-     * Actualiza un informe existente.
-     */
     public function updateInforme($id)
     {
-        $data = $this->request->getJSON(true);
+        // Obtener datos del body JSON
+        $data = $this->request->getJSON(true); // true para obtener un array asociativo
 
         // Verificar si se recibieron datos
         if (!$data) {
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => 'No se recibieron datos para actualizar'
-            ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
-        }
-
-        // Validar que al menos un campo para actualizar esté presente
-        if (empty($data)) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'No se proporcionaron campos para actualizar'
+                'message' => 'No se recibieron datos para actualizar. El cuerpo de la solicitud está vacío o no es JSON válido.'
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
         // Crear array con los datos a actualizar, solo incluyendo los que se reciben
         $updateData = [];
+
+        // Campos existentes en tu función original
         if (isset($data['nombre_paciente'])) {
             $updateData['nombre_paciente'] = trim($data['nombre_paciente']);
         }
@@ -609,11 +620,11 @@ private function generatePDF($data, $cobertura, $outputPath)
         if (isset($data['fecha'])) {
             $updateData['fecha'] = $data['fecha'];
         }
-        if (isset($data['url_archivo'])) {
+        if (isset($data['url_archivo'])) { // Ten cuidado si esto cambia al actualizar un archivo real
             $updateData['url_archivo'] = $data['url_archivo'];
         }
         if (isset($data['mail_paciente'])) {
-            $updateData['mail_paciente'] = $data['mail_paciente'];
+            $updateData['mail_paciente'] = trim($data['mail_paciente']); // Añadido trim por consistencia
         }
         if (isset($data['tipo_informe'])) {
             $updateData['tipo_informe'] = trim($data['tipo_informe']);
@@ -622,16 +633,64 @@ private function generatePDF($data, $cobertura, $outputPath)
             $updateData['id_cobertura'] = $data['id_cobertura'];
         }
 
+        // --- CAMPOS NUEVOS/ADICIONALES ---
+        if (isset($data['fecha_nacimiento_paciente'])) {
+            $updateData['fecha_nacimiento_paciente'] = $data['fecha_nacimiento_paciente'];
+        }
+        if (isset($data['numero_afiliado'])) {
+            $updateData['numero_afiliado'] = trim($data['numero_afiliado']);
+        }
+        if (isset($data['medico_envia_estudio'])) {
+            $updateData['medico_envia_estudio'] = trim($data['medico_envia_estudio']);
+        }
+        if (isset($data['motivo_estudio'])) {
+            $updateData['motivo_estudio'] = trim($data['motivo_estudio']);
+        }
+        if (isset($data['estomago'])) {
+            $updateData['estomago'] = trim($data['estomago']);
+        }
+        if (isset($data['duodeno'])) {
+            $updateData['duodeno'] = trim($data['duodeno']);
+        }
+        if (isset($data['esofago'])) {
+            $updateData['esofago'] = trim($data['esofago']);
+        }
+        if (isset($data['conclusion'])) {
+            $updateData['conclusion'] = trim($data['conclusion']);
+        }
+        if (isset($data['efectuo_terapeutica'])) {
+            $updateData['efectuo_terapeutica'] = trim($data['efectuo_terapeutica']);
+        }
+        if (isset($data['tipo_terapeutica'])) {
+            $updateData['tipo_terapeutica'] = trim($data['tipo_terapeutica']);
+        }
+        if (isset($data['efectuo_biopsia'])) {
+            $updateData['efectuo_biopsia'] = trim($data['efectuo_biopsia']);
+        }
+        if (isset($data['fracos_biopsia'])) {
+            $updateData['fracos_biopsia'] = $data['fracos_biopsia'];
+        }
+        if (isset($data['informe'])) {
+            $updateData['informe'] = trim($data['informe']);
+        }
+        if (isset($data['edad'])) {
+            $updateData['edad'] = $data['edad'];
+        }
+
         // Si no hay datos válidos para actualizar, retornar un error
         if (empty($updateData)) {
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => 'No se proporcionaron datos válidos para actualizar'
+                'message' => 'No se proporcionaron campos válidos para actualizar.'
             ])->setStatusCode(ResponseInterface::HTTP_BAD_REQUEST);
         }
 
         // Intentar actualizar el informe
-        $informeModel = new \App\Models\InformesModel();
+        // Asegúrate de que $this->InformesModel esté disponible.
+        // Si no estás usando ResourceController de la forma más estricta con $modelName,
+        // o si tienes lógica personalizada, podrías necesitar instanciarlo.
+        $informeModel = $this->model ?? new \App\Models\InformesModel(); // Usa $this->model si está configurado, sino instancialo
+
         $informe = $informeModel->find($id);
 
         if (!$informe) {
@@ -645,16 +704,21 @@ private function generatePDF($data, $cobertura, $outputPath)
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Informe actualizado exitosamente',
-                'data' => $updateData
+                'data_updated' => $updateData // Renombrado de 'data' a 'data_updated' para mayor claridad
             ])->setStatusCode(ResponseInterface::HTTP_OK);
         } else {
+            // Error al actualizar (puede ser por reglas de validación en el modelo, etc.)
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Error al actualizar el informe',
-                'errors' => $informeModel->errors() // Puedes devolver los errores de validación si los tienes configurados en el modelo
+                'errors' => $informeModel->errors() // Esto es muy útil para depurar errores de validación del modelo
             ])->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+
+
+
     public function reenviarInformePorId($idInforme)
     {
         $informe = $this->InformesModel->find($idInforme);
