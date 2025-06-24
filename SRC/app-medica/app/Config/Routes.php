@@ -33,7 +33,9 @@ $routes->get('/informe/borrar/(:num)', 'Informes::deleteInforme/$1');
 /* $routes->get('/informe/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1'); */
 $routes->get('/mai', 'Informes::enviarCorreoPrueba');
 $routes->get('/descargar-archivo', 'Informes::descargarInformeCompleto');
-
+$routes->get('/informe/imagenes/(:num)', 'Informes::getImagenesByInformeId/$1');
+$routes->post('/informe/imagenes/update/(:num)', 'Informes::updateInformeImages/$1');
+$routes->get('/informes/descargar-pdfs', 'Informes::downloadPdfsByDateRange');
 $routes->get('/coberturas', 'Coberturas::getCoberturas');
 $routes->get('/cobertura/(:num)', 'Coberturas::getByIdCoberturas/$1');
 $routes->post('/cobertura/alta', 'Coberturas::postCobertura'); // Cambiado a POST
