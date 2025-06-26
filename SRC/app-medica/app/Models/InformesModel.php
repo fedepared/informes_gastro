@@ -125,4 +125,17 @@ class InformesModel extends Model
             ->get()
             ->getRowArray();
     }
+
+     public function getInformesByNombreCobertura($nombreCobertura)
+    {
+        // Construye la consulta:
+        // 1. Selecciona todos los campos de 'informes' y el 'nombre_cobertura' de la tabla 'coberturas'.
+        // 2. Realiza un JOIN entre 'informes' y 'coberturas' usando 'id_cobertura'.
+        // 3. Filtra los resultados donde el 'nombre_cobertura' de la tabla 'coberturas' coincida con el parámetro.
+        // 4. Obtiene todos los resultados que coincidan.
+        return $this->select('informes.*, coberturas.nombre_cobertura')
+                    ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura')
+                    ->where('coberturas.nombre_cobertura', $nombreCobertura)
+                    ->findAll();
+    }
 }

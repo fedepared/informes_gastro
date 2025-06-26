@@ -24,7 +24,7 @@ $routes->post('/usuario/alta', 'Usuarios::postUsuarios');
 $routes->put('/usuario/editar/(:num)', 'Usuarios::updateUsuarios/$1');
 $routes->get('/usuario/borrar/(:num)', 'Usuarios::deleteUsuarios/$1');
 
-
+$routes->get('/informes/por-cobertura/(:segment)', 'Informes::getInformesByCobertura/$1');
 $routes->get('/informes', 'Informes::getInformes');
 $routes->get('/informe/(:num)', 'Informes::getByIdInformes/$1');
 $routes->post('/informe/alta', 'Informes::postInforme');

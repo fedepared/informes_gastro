@@ -656,11 +656,10 @@ class Informes extends BaseController
             $mail->CharSet    = 'UTF-8';
 
             // Remitente y destinatario
-     
-           /* $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
-             $mail->addCC('dianajudit@hotmail.com', "Se envió a: $destinatario");
+            $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
+            $mail->addCC('dianajudit@hotmail.com', "Se envió a: $destinatario");
             $mail->addCC('adege2000@yahoo.com.ar', "Se envió a: $destinatario");
-            $mail->addCC('quirofanosi@santaisabel.com.ar', "Se envió a: $destinatario"); */
+            $mail->addCC('quirofanosi@santaisabel.com.ar', "Se envió a: $destinatario");
             $mail->addAddress($destinatario); // Este es el destinatario principal dinámico
 
             // Contenido del correo
@@ -1433,5 +1432,36 @@ class Informes extends BaseController
                 'line' => $e->getLine()
             ])->setStatusCode(500);
         }
+    }
+
+public function getInformesByCobertura($nombreCobertura) // El parámetro ya lo renombraste a $cobertura en la ruta, así que úsalo aquí
+    {
+        // Si quieres que el filtro sea insensible a mayúsculas/minúsculas
+        // $nombreCobertura = strtoupper($nombreCobertura); // Si en tu DB siempre es MAYÚSCULAS
+
+        // Validación básica
+        if (empty($nombreCobertura)) {
+            return $this->response->setJSON([
+                'status' => 400,
+                'error' => 'El nombre de la cobertura no puede estar vacío.'
+            ])->setStatusCode(400);
+        }
+
+        // Llama al nuevo método corregido de tu modelo
+        $informes = $this->InformesModel->getInformesByNombreCobertura($nombreCobertura);
+
+        if (empty($informes)) {
+            return $this->response->setJSON([
+                'status' => 404,
+                'error' => 'No se encontraron informes para la cobertura "' . esc($nombreCobertura) . '".'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'status' => 200,
+            'error' => null,
+            'messages' => ['success' => 'Informes encontrados exitosamente.'],
+            'data' => $informes
+        ]);
     }
 }
