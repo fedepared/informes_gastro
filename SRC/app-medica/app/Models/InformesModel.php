@@ -79,7 +79,7 @@ class InformesModel extends Model
         return $builder->get()->getRow()->total;
     }
     
-    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null, $limit = 10, $offset = 0)
+    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null,$cobertura = null, $limit = 10, $offset = 0)
     {
         $builder = $this->select('informes.*, coberturas.nombre_cobertura')
             ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura', 'left');
@@ -91,7 +91,9 @@ class InformesModel extends Model
         if ($desde) {
             $builder->where('fecha >=', $desde);
         }
-    
+        if ($cobertura){
+            $builder->like('nombre_cobertura',$cobertura);
+        }
         if ($hasta) {
             $builder->where('fecha <=', $hasta);
         }
@@ -124,5 +126,17 @@ class InformesModel extends Model
             ->where('informes.id_informe', $id)
             ->get()
             ->getRowArray();
+    }
+    public function getInformesByNombreCobertura($nombreCobertura)
+    {
+        // Construye la consulta:
+        // 1. Selecciona todos los campos de 'informes' y el 'nombre_cobertura' de la tabla 'coberturas'.
+        // 2. Realiza un JOIN entre 'informes' y 'coberturas' usando 'id_cobertura'.
+        // 3. Filtra los resultados donde el 'nombre_cobertura' de la tabla 'coberturas' coincida con el parámetro.
+        // 4. Obtiene todos los resultados que coincidan.
+        return $this->select('informes.*, coberturas.nombre_cobertura')
+                    ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura')
+                    ->where('coberturas.nombre_cobertura', $nombreCobertura)
+                    ->findAll();
     }
 }

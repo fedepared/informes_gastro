@@ -11,6 +11,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use CodeIgniter\HTTP\ResponseInterface;
 use ZipArchive;
+use DateTime;
 use CodeIgniter\Files\File; // Necesario para trabajar con rutas de archivos
 class Informes extends BaseController
 {
@@ -84,14 +85,14 @@ class Informes extends BaseController
         $nombre = $this->request->getGet('nombre');
         $fecha_desde = $this->request->getGet('fecha_desde');
         $fecha_hasta = $this->request->getGet('fecha_hasta');
-
+        $cobertura = $this->request->getGet('cobertura'); 
         $page = (int) $this->request->getGet('page') ?: 1;
         $perPage = (int) $this->request->getGet('per_page') ?: 10;
         $offset = ($page - 1) * $perPage;
 
         // Obtener resultados y total de registros filtrados
-        $resultado = $this->InformesModel->getInformesPaginado($nombre, $fecha_desde, $fecha_hasta, $perPage, $offset);
-        $total = $this->InformesModel->countInformesFiltrados($nombre, $fecha_desde, $fecha_hasta);
+        $resultado = $this->InformesModel->getInformesPaginado($nombre, $fecha_desde, $fecha_hasta, $cobertura, $perPage, $offset);
+        $total = $this->InformesModel->countInformesFiltrados($nombre, $fecha_desde, $fecha_hasta, $cobertura);
         $totalPaginas = ceil($total / $perPage);
 
         return $this->response->setJSON([
@@ -195,13 +196,12 @@ class Informes extends BaseController
             $duodeno = trim($requestData['duodeno'] ?? '');
             $esofago = trim($requestData['esofago'] ?? '');
             $conclusion = trim($requestData['conclusion'] ?? '');
-            $terapeutico = trim($requestData['efectuo_terapeutica'] ?? '');
+            $terapeutico = (int) ($requestData['efectuo_terapeutica'] ?? 0); 
             $cual = trim($requestData['tipo_terapeutica'] ?? '');
-            $biopsia = trim($requestData['efectuo_biopsia'] ?? '');
+            $biopsia = (int) ($requestData['efectuo_biopsia'] ?? 0); 
             $frascos = $requestData['fracos_biopsia'] ?? null;
             $informeContenido = trim($requestData['informe'] ?? '');
             $edad = $requestData['edad'] ?? null;
-
             // Validar campos obligatorios
             $requiredFields = ['nombre_paciente', 'dni_paciente', 'fecha', 'mail_paciente', 'tipo_informe', 'id_cobertura'];
             foreach ($requiredFields as $field) {
@@ -414,6 +414,7 @@ class Informes extends BaseController
                     'url_archivo' => $updateData['url_archivo'],
                     'imagenes_guardadas' => $imagenesGuardadasPaths,
                     'files_received_info' => $filesReceivedInfo
+                   
                 ]);
             } else {
                 return $this->response->setJSON([
@@ -462,7 +463,7 @@ class Informes extends BaseController
        log_message('debug', 'Iniciando generatePDF.');
         log_message('debug', 'outputPath recibido: ' . $outputPath);
         log_message('debug', 'fileName recibido: ' . $fileName);
-
+       
         $options = new \Dompdf\Options();
         $options->set('isRemoteEnabled', true); // Necesario si usas URLs absolutas para imágenes externas
         $options->set('isHtml5ParserEnabled', true); // Recomendado para mejor parsing de HTML5
@@ -478,6 +479,9 @@ class Informes extends BaseController
         log_message('debug', 'URL Logo: ' . $logo);
         log_message('debug', 'URL Firma: ' . $firma);
 
+     
+        $terapeuticaDisplay = (isset($data['terapeutico']) && $data['terapeutico'] == 1) ? 'SI' : 'NO';
+        $biopsiaDisplay = (isset($data['biopsia']) && $data['biopsia'] == 1) ? 'SI' : 'NO';
 
         $imagenesHtml = '';
         if (!empty($data['imagenes'])) {
@@ -494,7 +498,7 @@ class Informes extends BaseController
 
         // Armamos la sección de PATOLOGÍA solo si biopsia es "SI"
         $patologiaHtml = '';
-        if (strtoupper(trim($data['biopsia'])) === 'SI') {
+        if ($biopsiaDisplay === 'SI') {
             $patologiaHtml = "
         <div class='section'>
             <div class='section-title1'>PATOLOGÍA</div>
@@ -581,9 +585,9 @@ class Informes extends BaseController
 
     <div class='section'>
         <div class='section-title1'>TERAPÉUTICA Y BIOPSIA</div>
-        <div class='field'><strong>¿Se efectuó terapéutica?:</strong> {$data['terapeutico']}</div>
+        <div class='field'><strong>¿Se efectuó terapéutica?:</strong> {$terapeuticaDisplay}</div>
         <div class='field'><strong>¿Cuál?:</strong> {$data['cual']}</div>
-        <div class='field'><strong>¿Se efectuó biopsia?:</strong> {$data['biopsia']}</div>
+        <div class='field'><strong>¿Se efectuó biopsia?:</strong> {$biopsiaDisplay}</div>
         <div class='field'><strong>Frascos:</strong> {$data['frascos']}</div>
     </div>
 
@@ -825,16 +829,16 @@ class Informes extends BaseController
             $updateData['conclusion'] = trim($data['conclusion']);
         }
         if (isset($data['efectuo_terapeutica'])) {
-            $updateData['efectuo_terapeutica'] = trim($data['efectuo_terapeutica']);
+            $updateData['efectuo_terapeutica'] = (int)$data['efectuo_terapeutica'];
         }
         if (isset($data['tipo_terapeutica'])) {
-            $updateData['tipo_terapeutica'] = trim($data['tipo_terapeutica']);
+            $updateData['tipo_terapeutica'] = (empty(trim($data['tipo_terapeutica']))) ? null : trim($data['tipo_terapeutica']);
         }
         if (isset($data['efectuo_biopsia'])) {
-            $updateData['efectuo_biopsia'] = trim($data['efectuo_biopsia']);
+            $updateData['efectuo_biopsia'] = (int)$data['efectuo_biopsia'];
         }
         if (isset($data['fracos_biopsia'])) {
-            $updateData['fracos_biopsia'] = $data['fracos_biopsia'];
+            $updateData['fracos_biopsia'] = (empty($data['fracos_biopsia']) && $data['fracos_biopsia'] !== 0) ? null : (int)$data['fracos_biopsia'];
         }
         if (isset($data['informe'])) {
             $updateData['informe'] = trim($data['informe']);
@@ -975,7 +979,7 @@ class Informes extends BaseController
             ])->setStatusCode(400); // Bad Request
         }
 
-        // 1. Obtener los datos del informe de la base de datos
+        // 1. Obtener los datos del informe de la base de datosc
         $informe = $this->InformesModel->find($idInforme);
 
         if (!$informe) {
@@ -1432,6 +1436,206 @@ class Informes extends BaseController
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ])->setStatusCode(500);
+        }
+    }
+    public function getInformesByCobertura($nombreCobertura) // El parámetro ya lo renombraste a $cobertura en la ruta, así que úsalo aquí
+    {
+        // Si quieres que el filtro sea insensible a mayúsculas/minúsculas
+        // $nombreCobertura = strtoupper($nombreCobertura); // Si en tu DB siempre es MAYÚSCULAS
+
+        // Validación básica
+        if (empty($nombreCobertura)) {
+            return $this->response->setJSON([
+                'status' => 400,
+                'error' => 'El nombre de la cobertura no puede estar vacío.'
+            ])->setStatusCode(400);
+        }
+
+        // Llama al nuevo método corregido de tu modelo
+        $informes = $this->InformesModel->getInformesByNombreCobertura($nombreCobertura);
+
+        if (empty($informes)) {
+            return $this->response->setJSON([
+                'status' => 404,
+                'error' => 'No se encontraron informes para la cobertura "' . esc($nombreCobertura) . '".'
+            ])->setStatusCode(404);
+        }
+
+        return $this->response->setJSON([
+            'status' => 200,
+            'error' => null,
+            'messages' => ['success' => 'Informes encontrados exitosamente.'],
+            'data' => $informes
+        ]);
+    }
+    public function downloadPdfsByDateRangeAndCoverage()
+    {
+        try {
+            $fechaInicioStr = $this->request->getVar('fecha_inicio');
+            $fechaFinStr = $this->request->getVar('fecha_fin');
+            $cobertura = $this->request->getVar('cobertura'); 
+
+            // 1. Validación de fechas
+            if (empty($fechaInicioStr) || empty($fechaFinStr)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ambas fechas (fecha_inicio y fecha_fin) son requeridas para la descarga.'
+                ])->setStatusCode(400); // Bad Request
+            }
+
+            try {
+                $fechaInicio = new \DateTime($fechaInicioStr);
+                $fechaFin = new \DateTime($fechaFinStr);
+            } catch (Exception $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Formato de fecha inválido. Use AAAA-MM-DD.'
+                ])->setStatusCode(400);
+            }
+
+            if ($fechaInicio > $fechaFin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'La fecha de inicio no puede ser posterior a la fecha de fin.'
+                ])->setStatusCode(400);
+            }
+
+            // Formatear fechas para la consulta a la base de datos
+            $fechaInicioDB = $fechaInicio->format('Y-m-d');
+            $fechaFinDB = $fechaFin->format('Y-m-d');
+
+            log_message('debug', "Buscando PDFs entre {$fechaInicioDB} y {$fechaFinDB} para cobertura: " . ($cobertura ?: 'Todas'));
+
+            // 2. Consulta a la base de datos con filtros
+            // Construimos la consulta usando el Query Builder de CodeIgniter
+            $informesQueryBuilder = $this->InformesModel
+                                         ->select('informes.*, coberturas.nombre_cobertura') // Seleccionar el nombre de la cobertura
+                                         ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura', 'left') // LEFT JOIN para incluir informes sin cobertura
+                                         ->where('informes.fecha >=', $fechaInicioDB)
+                                         ->where('informes.fecha <=', $fechaFinDB);
+
+            // Aplicar filtro por cobertura si se proporcionó un valor y no está vacío
+            if (!empty($cobertura)) {
+                $informesQueryBuilder->like('coberturas.nombre_cobertura', $cobertura, 'both'); // 'both' busca la subcadena en cualquier posición
+            }
+
+            $informes = $informesQueryBuilder->findAll(); // Ejecutar la consulta
+
+            if (empty($informes)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se encontraron informes en el rango de fechas y/o cobertura especificados.'
+                ])->setStatusCode(404); // Not Found
+            }
+
+            // 3. Preparar el archivo ZIP
+            $zip = new ZipArchive();
+            $zipFileName = 'informes_' . $fechaInicio->format('Ymd') . '_' . $fechaFin->format('Ymd');
+            
+            // Añadir la cobertura al nombre del archivo ZIP si se usó para filtrar
+            if (!empty($cobertura)) {
+                // Limpiar el nombre de la cobertura para que sea seguro en el nombre del archivo ZIP
+                $zipFileName .= '_' . preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(' ', '_', $cobertura));
+            }
+            $zipFileName .= '.zip';
+
+            // Crea un archivo temporal para el ZIP en el sistema
+            $tempZipPath = tempnam(sys_get_temp_dir(), 'informes_zip_') . '.zip'; 
+
+            log_message('debug', 'Ruta temporal del ZIP: ' . $tempZipPath);
+
+            if ($zip->open($tempZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo crear el archivo ZIP.'
+                ])->setStatusCode(500); // Internal Server Error
+            }
+
+            $filesAddedCount = 0;
+            foreach ($informes as $informe) {
+                $urlArchivo = $informe['url_archivo'];
+                // FCPATH es una constante de CodeIgniter que apunta a la raíz pública del proyecto
+                $physicalFilePath = FCPATH . $urlArchivo; 
+                $primaryKeyName = $this->InformesModel->primaryKey; // Obtiene el nombre de la clave primaria del modelo
+
+                if (file_exists($physicalFilePath) && is_file($physicalFilePath)) {
+                    // Sanitizar el nombre del paciente para que sea un nombre de archivo seguro
+                    $pacienteNombreLimpio = preg_replace('/[^a-zA-Z0-9\s_-]/', '', $informe['nombre_paciente'] ?? 'Sin_Nombre');
+                    $pacienteNombreLimpio = str_replace(' ', '_', $pacienteNombreLimpio);
+                    $pacienteNombreLimpio = trim($pacienteNombreLimpio, '_');
+                    $pacienteNombreLimpio = preg_replace('/_+/', '_', $pacienteNombreLimpio);
+
+                    // Construir el nombre del archivo dentro del ZIP
+                    $fileInZipName = $pacienteNombreLimpio . '_' .
+                                     ($informe['dni_paciente'] ?? 'N_A_DNI') . '_' .
+                                     preg_replace('/[^a-zA-Z0-9_-]/', '_', ($informe['tipo_informe'] ?? 'Informe')) . '_' ;
+                    
+                    // Añadir el nombre de la cobertura al nombre del archivo si está disponible en el informe
+                    if (!empty($informe['nombre_cobertura'])) {
+                        $fileInZipName .= preg_replace('/[^a-zA-Z0-9_-]/', '_', $informe['nombre_cobertura']) . '_';
+                    }
+
+                    $fileInZipName .= ($informe['fecha'] ?? 'FechaDesconocida') . '.pdf';
+
+                    // Si hay duplicados en el nombre dentro del ZIP, añadir el ID del informe para hacerlo único
+                    if ($zip->locateName($fileInZipName) !== false) {
+                        $fileInZipName = str_replace('.pdf', '', $fileInZipName) . '_ID' . ($informe[$primaryKeyName] ?? uniqid()) . '.pdf';
+                    }
+
+                    if ($zip->addFile($physicalFilePath, $fileInZipName)) {
+                        $filesAddedCount++;
+                        log_message('debug', 'Añadido al ZIP: ' . $physicalFilePath . ' como ' . $fileInZipName);
+                    } else {
+                        log_message('error', 'Error al añadir archivo al ZIP: ' . $physicalFilePath);
+                    }
+                } else {
+                    log_message('warning', 'PDF no encontrado en la ruta física: ' . $physicalFilePath . ' para informe ID: ' . ($informe[$primaryKeyName] ?? 'Desconocido'));
+                }
+            }
+
+            $zip->close(); // Cierra y guarda el archivo ZIP
+
+            if ($filesAddedCount === 0) {
+                // Si no se añadió ningún archivo al ZIP (p. ej., porque los PDFs no existían físicamente)
+                // Eliminar el archivo ZIP vacío creado
+                if (file_exists($tempZipPath)) {
+                    unlink($tempZipPath);
+                }
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se encontraron archivos PDF válidos en el rango de fechas y/o cobertura para crear el ZIP.'
+                ])->setStatusCode(404); // Not Found
+            }
+
+            // 4. Enviar el archivo ZIP para descarga al navegador
+            if (file_exists($tempZipPath)) {
+                $this->response->setStatusCode(200)
+                               ->setContentType('application/zip')
+                               ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
+                               ->setBody(file_get_contents($tempZipPath))
+                               ->send();
+
+                // 5. Eliminar el archivo temporal del servidor después de enviarlo
+                unlink($tempZipPath);
+                log_message('info', 'Archivo ZIP descargado y temporal eliminado: ' . $tempZipPath);
+                exit(); // Es crucial llamar a exit() después de enviar un archivo binario directamente
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error inesperado: el archivo ZIP no se encontró después de la creación.'
+                ])->setStatusCode(500); // Internal Server Error
+            }
+
+        } catch (Exception $e) {
+            // Manejo de cualquier excepción inesperada
+            log_message('error', 'Excepcion en downloadPdfsByDateRangeAndCoverage: ' . $e->getMessage() . ' en ' . $e->getFile() . ' linea ' . $e->getLine());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error interno del servidor al procesar la descarga. Por favor, inténtalo de nuevo más tarde.',
+                'error_detail' => $e->getMessage(), // Solo para depuración en desarrollo, no en producción
+                'file' => $e->getFile(),             // Solo para depuración
+                'line' => $e->getLine()              // Solo para depuración
+            ])->setStatusCode(500); // Internal Server Error
         }
     }
 }
