@@ -2,31 +2,50 @@
 
 namespace App\Models;
 
-
 use CodeIgniter\Model;
 
 class InformesModel extends Model
 {
     protected $table      = 'informes';
-    protected $primaryKey = 'id_informe';
+    protected $primaryKey = 'id_informe'; // Correcto: define la clave primaria
 
     protected $returnType     = 'array';
-    protected $allowedFields = ['nombre_paciente','fecha','url_archivo','mail_paciente','id_cobertura',
-    'id_informe','dni_paciente','tipo_informe','fecha_nacimiento_paciente','numero_afiliado',
-    'medico_envia_estudio','motivo_estudio','estomago','duodeno','esofago','conclusion','efectuo_terapeutica',
-    'tipo_terapeutica','efectuo_biopsia','fracos_biopsia','informe','edad'];
-    
+    protected $useAutoIncrement = true; // Agrega esto si tu ID es auto-incremental (que es lo más probable)
 
+    // ¡IMPORTANTE! Quita 'id_informe' de $allowedFields
+    protected $allowedFields = [
+        'nombre_paciente',
+        'fecha',
+        'url_archivo',
+        'mail_paciente',
+        'id_cobertura',
+        'dni_paciente',
+        'tipo_informe',
+        'fecha_nacimiento_paciente',
+        'numero_afiliado',
+        'medico_envia_estudio',
+        'motivo_estudio',
+        'estomago',
+        'duodeno',
+        'esofago',
+        'conclusion',
+        'efectuo_terapeutica',
+        'tipo_terapeutica',
+        'efectuo_biopsia',
+        'fracos_biopsia',
+        'informe', // Este es el campo 'informe' de la DB que contiene el texto del informe
+        'edad'
+    ];
+    
 
     public function getInformesWithFiltros($nombre = null, $fecha_desde = null, $fecha_hasta = null)
     {
         $builder = $this->db->table($this->table);
     
-        // Unimos con la tabla de coberturas si es necesario (asumo que ya lo haces en getInformesWithCoberturas)
-        $builder->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura'); // Ajusta el nombre de la tabla y las claves si es diferente
+        $builder->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura');
     
         if ($nombre) {
-            $builder->like('nombre_paciente', $nombre, 'both'); // 'both' para buscar coincidencias en cualquier parte del nombre
+            $builder->like('nombre_paciente', $nombre, 'both');
         }
     
         if ($fecha_desde && $fecha_hasta) {
@@ -40,7 +59,6 @@ class InformesModel extends Model
     
         return $builder->get()->getResultArray();
     }
-
 
     public function countInformesFiltrados($nombre = null, $desde = null, $hasta = null)
     {
@@ -61,7 +79,6 @@ class InformesModel extends Model
         return $builder->get()->getRow()->total;
     }
     
-
     public function getInformesPaginado($nombre = null, $desde = null, $hasta = null, $limit = 10, $offset = 0)
     {
         $builder = $this->select('informes.*, coberturas.nombre_cobertura')
@@ -79,7 +96,6 @@ class InformesModel extends Model
             $builder->where('fecha <=', $hasta);
         }
     
-        // Asegurarse de que limit y offset sean enteros
         $limit = (int) $limit;
         $offset = (int) $offset;
     
@@ -90,15 +106,6 @@ class InformesModel extends Model
             ->get()
             ->getResult();
     }
-    
-    
-
-
-
-
-
-
-
     
     public function getInformesWithCoberturas()
     {
@@ -118,7 +125,4 @@ class InformesModel extends Model
             ->get()
             ->getRowArray();
     }
-
 }
-
-?>
