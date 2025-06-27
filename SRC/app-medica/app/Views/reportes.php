@@ -594,7 +594,11 @@ td button:hover {
     cursor: pointer;
     font-size: 16px;
 }
-
+#filterButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 </style>
 
@@ -628,7 +632,7 @@ td button:hover {
                 <label for="fecha_hasta">Hasta:</label>
                 <input type="date" name="fecha_hasta" id="fecha_hasta">
 
-                <button type="submit">Filtrar</button>
+                <button type="submit" id="filterButton" disabled>Filtrar</button>
             </div>
         </form>
 
@@ -655,7 +659,7 @@ td button:hover {
             <button id="nextPage" disabled>Siguiente</button>
         </div>
         <div class="btdescarga">
-            <button id="downloadPdfsButton">Descargar Reportes</button>
+            <button id="downloadPdfsButton" disable style="display: none;">Descargar Reportes</button>
         </div>
     </div>
 </div>
@@ -800,6 +804,18 @@ td button:hover {
 
 
 <script>
+    function toggleFilterButton() {
+    const fechaDesde = document.getElementById("fecha_desde").value;
+    const fechaHasta = document.getElementById("fecha_hasta").value;
+    const filterButton = document.getElementById("filterButton");
+
+    // The button will be enabled only if both date fields have a value
+    if (fechaDesde && fechaHasta) {
+        filterButton.disabled = false;
+    } else {
+        filterButton.disabled = true;
+    }
+}
     function calcularEdad(fechaNacimiento) {
     if (!fechaNacimiento) {
         return ''; // Retorna vacío si no hay fecha de nacimiento
@@ -939,7 +955,19 @@ function cargarCoberturas() {
     
 
 
+    function updateDownloadButtonState() {
+    const downloadButton = document.getElementById("downloadPdfsButton");
+    const fechaDesde = document.getElementById("fecha_desde").value;
+    const fechaHasta = document.getElementById("fecha_hasta").value;
 
+    if (reportFilterApplied && fechaDesde && fechaHasta) {
+        downloadButton.disabled = false;
+        downloadButton.style.display = "block"; // Muestra el botón
+    } else {
+        downloadButton.disabled = true;
+        downloadButton.style.display = "none"; // Oculta el botón
+    }
+}
 
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -957,12 +985,36 @@ document.addEventListener("DOMContentLoaded", function () {
             filtrarTabla();
     });
 
-    // Evento para el botón de filtrar por fecha
     document.getElementById("filterForm").addEventListener("submit", function (event) {
         event.preventDefault(); // Evita recargar la página
-        filtrarTabla();
+        const fechaDesde = document.getElementById("fecha_desde").value;
+        const fechaHasta = document.getElementById("fecha_hasta").value;
+
+        if (fechaDesde && fechaHasta) {
+            filtrarTabla();
+            reportFilterApplied = true; // Set the flag only if both dates are provided and filter is clicked
+        } else {
+            reportFilterApplied = false; // Ensure flag is false if dates are not complete
+            mostrarMensaje("error", "Por favor, ingresa ambas fechas (Desde y Hasta) para filtrar.");
+        }
+        updateDownloadButtonState(); // Always update state after form submission
     });
 
+    // Añade event listeners a los campos de fecha para controlar el botón "Filtrar"
+    document.getElementById("fecha_desde").addEventListener("change", function() {
+        toggleFilterButton();
+        reportFilterApplied = false; // Reset flag when dates change
+        updateDownloadButtonState(); // Update download button state
+    });
+    document.getElementById("fecha_hasta").addEventListener("change", function() {
+        toggleFilterButton();
+        reportFilterApplied = false; // Reset flag when dates change
+        updateDownloadButtonState(); // Update download button state
+    });
+
+    // Llama a toggleFilterButton y updateDownloadButtonState al cargar la página para establecer el estado inicial
+    toggleFilterButton();
+    updateDownloadButtonState();
     // Paginación
     document.getElementById("prevPage").addEventListener("click", function() {
         changePage(-1);
