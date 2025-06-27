@@ -549,6 +549,53 @@ td button:hover {
     font-size: 14px;
     width: 100%;
 }
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3); /* Color de fondo del spinner */
+    border-radius: 50%;
+    border-top: 4px solid #fff; /* Color principal del spinner */
+    width: 20px;
+    height: 20px;
+    -webkit-animation: spin 1s linear infinite; /* Animación para navegadores basados en Webkit */
+    animation: spin 1s linear infinite;
+    display: inline-block; /* Permite que el spinner se muestre en línea */
+    vertical-align: middle; /* Alineación vertical con el texto si hay */
+    /* margin-left: 8px; */ /* Si lo quieres separado del texto, ya lo manejaremos con gap en el botón flex */
+    box-sizing: border-box;
+}
+
+/* Animación de giro del spinner */
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Clase de utilidad para ocultar/mostrar elementos */
+.hidden {
+    display: none !important;
+}
+
+/* Ajustes para el botón cuando contiene un spinner */
+#btnGuardarEdicion {
+    display: flex; /* Usamos flexbox para centrar y alinear los elementos internos */
+    justify-content: center; /* Centra horizontalmente el texto/spinner */
+    align-items: center; /* Centra verticalmente el texto/spinner */
+    gap: 8px; /* Espacio entre el texto y el spinner */
+    /* Otros estilos de botón aquí, si no los tienes ya definidos globalmente */
+    background-color: #009fdf; /* Ejemplo de color de fondo */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+
 </style>
 
 
@@ -741,7 +788,10 @@ td button:hover {
         </div>
         <div style="display: flex; justify-content: flex-end;">
             <button type="button" onclick="cerrarModal()">Cancelar</button>
-            <button type="submit"id="btnGuardarEdicion" disabled>Guardar Cambios</button>
+            <button type="submit" id="btnGuardarEdicion" disabled>
+              <span id="buttonTextEdit">Guardar Cambios</span>
+              <span id="spinnerEdit" class="spinner hidden"></span>
+             </button>
         </div>
         </form>
     </div>
@@ -750,6 +800,58 @@ td button:hover {
 
 
 <script>
+    function calcularEdad(fechaNacimiento) {
+    if (!fechaNacimiento) {
+        return ''; // Retorna vacío si no hay fecha de nacimiento
+    }
+
+    const fechaNac = new Date(fechaNacimiento);
+    const hoy = new Date();
+
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
+
+    // Ajustar edad si el cumpleaños aún no ha pasado este año
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+        edad--;
+    }
+    return edad;
+}
+document.addEventListener("DOMContentLoaded", function() {
+    // ... tu código existente ...
+
+    const inputFechaNacimiento = document.getElementById('edit-fechanacimiento');
+    const inputEdad = document.getElementById('edit-edad');
+
+    // Agrega el event listener para calcular la edad automáticamente
+    inputFechaNacimiento.addEventListener('change', function() {
+        inputEdad.value = calcularEdad(this.value);
+        validarFormularioEditar(); // Vuelve a validar el formulario después de actualizar la edad
+    });
+
+    // ... tu código existente ...
+});
+function showLoadingStateEdit() {
+    const buttonText = document.getElementById('buttonTextEdit');
+    const spinner = document.getElementById('spinnerEdit');
+    const submitBtn = document.getElementById('btnGuardarEdicion');
+
+    buttonText.classList.add('hidden'); // Oculta el texto
+    spinner.classList.remove('hidden'); // Muestra el spinner
+    submitBtn.disabled = true;          // Deshabilita el botón
+    submitBtn.style.cursor = 'wait';    // Cambia el cursor a "espera"
+}
+
+function hideLoadingStateEdit() {
+    const buttonText = document.getElementById('buttonTextEdit');
+    const spinner = document.getElementById('spinnerEdit');
+    const submitBtn = document.getElementById('btnGuardarEdicion');
+
+    buttonText.classList.remove('hidden'); // Muestra el texto
+    spinner.classList.add('hidden');      // Oculta el spinner
+    submitBtn.style.cursor = 'pointer';   // Restaura el cursor
+    validarFormularioEditar();            // Vuelve a habilitar el botón si los campos son válidos
+}
 
  document.getElementById("downloadPdfsButton").addEventListener("click", function() {
             downloadPdfsByDateRange();
@@ -1071,7 +1173,7 @@ function reenviarReporte(id, buttonElement) {
 function validarFormularioEditar() {
         const form = document.getElementById("formEditarReporte");
         const botonGuardar = document.getElementById("btnGuardarEdicion");
-
+        const spinnerActive = !document.getElementById('spinnerEdit').classList.contains('hidden');
         // Selecciona todos los campos requeridos que no estén deshabilitados
         const camposRequeridos = form.querySelectorAll("[required]:not([disabled])");
         let formularioValido = true;
@@ -1083,7 +1185,7 @@ function validarFormularioEditar() {
         });
 
         // Habilita o deshabilita el botón
-        botonGuardar.disabled = !formularioValido;
+        botonGuardar.disabled = !formularioValido || spinnerActive;
     }
 
     // Ejecutar validación al cargar y al escribir
@@ -1106,7 +1208,7 @@ function abrirModalEditar(reporte) {
     document.getElementById('edit-nombre').value = reporte.nombre_paciente || '';
     document.getElementById('edit-mail').value = reporte.mail_paciente || '';
     document.getElementById('edit-fechanacimiento').value = reporte.fecha_nacimiento_paciente || '';
-    document.getElementById('edit-edad').value = reporte.edad || '';
+    document.getElementById('edit-edad').value = calcularEdad(reporte.fecha_nacimiento_paciente) || '';
     document.getElementById('edit-tipoco').value = reporte.id_cobertura || '';
     document.getElementById('edit-numeroAfiliado').value = reporte.numero_afiliado || '';
     document.getElementById('edit-medico').value = reporte.medico_envia_estudio || '';
@@ -1247,7 +1349,7 @@ function cerrarModal() {
 }
 document.getElementById("formEditarReporte").addEventListener("submit", function (e) {
     e.preventDefault(); // Evita el envío tradicional del formulario
-
+    showLoadingStateEdit();
     const id = document.getElementById("edit-id").value;
     const inputImagenes = document.getElementById('edit-imagenes');
     const newFiles = Array.from(inputImagenes.files); // Obtiene los archivos seleccionados
@@ -1391,6 +1493,9 @@ document.getElementById("formEditarReporte").addEventListener("submit", function
         fetchInformes(); 
         console.error('Error general en la actualización:', error);
         mostrarMensaje("error", "Ocurrió un error general en la solicitud: " + error.message);
+    })
+    .finally(() => {
+        hideLoadingStateEdit(); // <-- Oculta el spinner al finalizar (éxito o error)
     });
    fetchInformes(); 
 });
