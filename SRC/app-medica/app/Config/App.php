@@ -6,6 +6,14 @@ use CodeIgniter\Config\BaseConfig;
 
 class App extends BaseConfig
 {
+
+    public string $sessionDriver = 'CodeIgniter\Session\Handlers\FileHandler';
+    public bool $sessionMatchIP = false;
+    public int $sessionExpiration = 7200; // 2 horas
+    public string $sessionSavePath = WRITEPATH . 'session';
+    public string $sessionCookieName = 'ci_session';
+
+
     /**
      * --------------------------------------------------------------------------
      * Base Site URL
@@ -16,8 +24,8 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = 'http://localhost:8080/';
-
+   
+    public string $baseURL = 'http://localhost/app-medica/public/';
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
      * If you want to accept multiple Hostnames, set this.
@@ -40,7 +48,7 @@ class App extends BaseConfig
      * something else. If you have configured your web server to remove this file
      * from your site URIs, set this variable to an empty string.
      */
-    public string $indexPage = 'index.php';
+    public string $indexPage = '';
 
     /**
      * --------------------------------------------------------------------------
@@ -133,7 +141,7 @@ class App extends BaseConfig
      * @see https://www.php.net/manual/en/timezones.php for list of timezones
      *      supported by PHP.
      */
-    public string $appTimezone = 'UTC';
+    public string $appTimezone = 'America/Argentina/Buenos_Aires';
 
     /**
      * --------------------------------------------------------------------------

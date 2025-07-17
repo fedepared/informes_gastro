@@ -12,8 +12,7 @@ class CoberturasModel extends Model
 
     protected $returnType     = 'array';
     protected $allowedFields = ['nombre_cobertura'];
-    
-
+ 
 }
 
 ?>
