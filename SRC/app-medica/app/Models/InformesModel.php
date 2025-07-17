@@ -79,7 +79,7 @@ class InformesModel extends Model
         return $builder->get()->getRow()->total;
     }
     
-    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null, $limit = 10, $offset = 0)
+    public function getInformesPaginado($nombre = null, $desde = null, $hasta = null,$cobertura = null, $limit = 10, $offset = 0)
     {
         $builder = $this->select('informes.*, coberturas.nombre_cobertura')
             ->join('coberturas', 'informes.id_cobertura = coberturas.id_cobertura', 'left');
@@ -91,7 +91,9 @@ class InformesModel extends Model
         if ($desde) {
             $builder->where('fecha >=', $desde);
         }
-    
+        if ($cobertura){
+            $builder->like('nombre_cobertura',$cobertura);
+        }
         if ($hasta) {
             $builder->where('fecha <=', $hasta);
         }

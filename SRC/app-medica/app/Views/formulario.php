@@ -200,7 +200,7 @@
             </div>
             <div>
                 <label>Tipo de estudio <span class="asterisco">*</span></label>
-                <select name="tipo_informe" class="required-field">
+                <select name="tipo_informe" id="tipoEstudio" class="required-field">
                     <option value="VEDA">VIDEOESOFAGASTRODUODENOSCOPIA</option>
                     <option value="VCC">VIDEOCOLONOSCOPIA</option>
                 </select>
@@ -218,7 +218,7 @@
             </div>
             <div>
                 <label>Fecha de nacimiento</label>
-                <input type="date" name="fecha_nacimiento" id="fecha_nacimiento">
+                <input type="date" name="fecha_nacimiento_paciente" id="fecha_nacimiento_paciente">
             </div>
         </div>
 
@@ -244,7 +244,7 @@
             </div>
             <div>
                 <label>Número de afiliado</label>
-                <input type="text" name="afiliado" id="afiliado" disabled>
+                <input type="text" name="numero_afiliado" id="numero_afiliado" disabled>
             </div>
         </div>
 
@@ -257,7 +257,7 @@
             </div>
            <div class="autocomplete-container">
                  <label>Médico que envía el estudio</label>
-                 <input type="text" name="medico" id="medico" autocomplete="off">
+                 <input type="text" name="medico_envia_estudio" id="medico_envia_estudio" autocomplete="off">
                  <div id="autocomplete-medico-list" class="autocomplete-items"></div>
             </div>
         </div>
@@ -265,22 +265,22 @@
         <div class="datos1">
             <div>
                 <label>Motivo del estudio</label>
-                <input type="text" name="motivo">
+                <input type="text" name="motivo_estudio">
             </div>
         </div>
 
         <h3>Informe del estudio</h3>
-        <div id="inputinforme" style="display: none;">
+        <div id="inputinforme" >
 
             <label>Informe</label>
-            <textarea name="informe"></textarea><br>
+            <textarea name="informe"></textarea>
         </div>
         <div class="datos1">
     
 </div>
 
 <!-- Inputs adicionales ocultos inicialmente -->
-<div id="vedaInputs" style="display: none;">
+<div id="vedaInputs" >
     <div>
         <div >
             <label>Esófago</label>
@@ -293,7 +293,7 @@
             <textarea type="text" name="estomago"></textarea>
         </div>
     </div>
-    <div >
+    <div > 
         <div>
             <label>Duodeno</label>
             <textarea type="text" name="duodeno"></textarea>
@@ -309,14 +309,14 @@
         <div class="datos1">
             <div>
                 <label>¿Se efectuó terapéutica? </label>
-                <select name="terapeutico">
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
+                <select name="efectuo_terapeutica">
+                    <option value="0">NO</option>
+                    <option value="1">SI</option>
                 </select>
             </div>
              <div class="autocomplete-container">
-                <label for="cual">¿Cuál?</label>
-                <input type="text" name="cual" id="cual" autocomplete="off">
+                <label for="tipo_terapeutica">¿Cuál?</label>
+                <input type="text" name="tipo_terapeutica" id="tipo_terapeutica" autocomplete="off">
                 <div id="autocomplete-list" class="autocomplete-items"></div>
                
             </div>
@@ -325,14 +325,14 @@
         <div class="datos1">
             <div>
                 <label>¿Se efectuó biopsia? </label>
-                <select name="biopsia" >
-                    <option value="NO">NO</option>
-                    <option value="SI">SI</option>
+                <select name="efectuo_biopsia" >
+                    <option value="0">NO</option>
+                    <option value="1">SI</option>
                 </select>
             </div>
             <div>
                 <label>Cantidad de frascos</label>
-                <input type="number" name="frascos">
+                <input type="number" name="fracos_biopsia">
             </div>
         </div>
 
@@ -344,13 +344,45 @@
     </form>
 </div>
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const tipoEstudioSelect = document.getElementById('tipoEstudio');
+    const informeInputDiv = document.getElementById('inputinforme');
+    const vedaInputsDiv = document.getElementById('vedaInputs');
+
+    function toggleInformeFields() {
+        const selectedValue = tipoEstudioSelect.value;
+        localStorage.setItem('tipoEstudioSeleccionado', selectedValue);
+        if (selectedValue === 'VEDA') {
+            
+            informeInputDiv.style.display = 'none';
+           
+            vedaInputsDiv.style.display = 'block';
+        } else if (selectedValue === 'VCC') {
+           
+            informeInputDiv.style.display = 'block';
+            
+            vedaInputsDiv.style.display = 'none';
+        }
+    }
+
+    const savedTipoEstudio = localStorage.getItem('tipoEstudioSeleccionado');
+        if (savedTipoEstudio) {
+            tipoEstudioSelect.value = savedTipoEstudio;
+        }
+    tipoEstudioSelect.addEventListener('change', toggleInformeFields);
+
+    
+    toggleInformeFields();
+
+    
+});
     document.addEventListener("DOMContentLoaded", function () {
-    const selectBiopsia = document.querySelector('select[name="biopsia"]');
-    const inputFrascos = document.querySelector('input[name="frascos"]');
+    const selectBiopsia = document.querySelector('select[name="efectuo_biopsia"]');
+    const inputFrascos = document.querySelector('input[name="fracos_biopsia"]');
 
     // Mostrar u ocultar el input de frascos
     function toggleFrascos(valor) {
-        if (valor === 'SI') {
+        if (valor === '1') {
             inputFrascos.parentElement.style.display = 'block';
         } else {
             inputFrascos.parentElement.style.display = 'none';
@@ -358,7 +390,7 @@
     }
 
     // Restaurar valor si existe en localStorage
-    const valorGuardado = localStorage.getItem('biopsia');
+    const valorGuardado = localStorage.getItem('efectuo_biopsia');
     if (valorGuardado) {
         selectBiopsia.value = valorGuardado;
         toggleFrascos(valorGuardado);
@@ -369,16 +401,16 @@
     // Guardar en localStorage cuando cambia
     selectBiopsia.addEventListener('change', function () {
         const valor = selectBiopsia.value;
-        localStorage.setItem('biopsia', valor);
+        localStorage.setItem('efectuo_biopsia', valor);
         toggleFrascos(valor);
     });
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-    const campoCual = document.getElementById('cual');
-    const selectTerapeutico = document.querySelector('select[name="terapeutico"]');
+    const campoCual = document.getElementById('tipo_terapeutica');
+    const selectTerapeutico = document.querySelector('select[name="efectuo_terapeutica"]');
 
-    const valorTerapeutico = localStorage.getItem('terapeutico');
+    const valorTerapeutico = localStorage.getItem('efectuo_terapeutica');
 
     // Establecer el valor del select si estaba guardado
     if (valorTerapeutico) {
@@ -387,7 +419,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Mostrar u ocultar el campo 'cual'
     function toggleCampoCual(valor) {
-        if (valor === 'SI') {
+        if (valor === '1') {
             campoCual.style.display = 'block';
         } else {
             campoCual.style.display = 'none';
@@ -400,30 +432,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // Escuchar cambios en el select y guardar en localStorage
     selectTerapeutico.addEventListener('change', function () {
         const valor = selectTerapeutico.value;
-        localStorage.setItem('terapeutico', valor);
+        localStorage.setItem('efectuo_terapeutica', valor);
         toggleCampoCual(valor);
     });
 });
-document.addEventListener("DOMContentLoaded", function () {
-    const tipoEstudioSelect = document.querySelector('select[name="tipo_informe"]');
-    const inputInforme = document.getElementById("inputinforme");
 
-    function actualizarVisibilidadInforme() {
-      const valorSeleccionado = tipoEstudioSelect.value;
-
-      if (valorSeleccionado === "VCC") {
-        inputInforme.style.display = "block";
-      } else if (valorSeleccionado === "VEDA") {
-        inputInforme.style.display = "none";
-      }
-    }
-
-    // Ejecutar al cargar la página por si hay un valor preseleccionado
-    actualizarVisibilidadInforme();
-
-    // Ejecutar cada vez que cambia el valor del select
-    tipoEstudioSelect.addEventListener("change", actualizarVisibilidadInforme);
-  });
     function esEmailValido(email) {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
@@ -490,8 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     const tipoEstudio = form.querySelector('select[name="tipo_informe"]').value;
-    const terapeuticoSelect = form.querySelector('select[name="terapeutico"]').value;
-    const biopsia = form.querySelector('select[name="biopsia"]').value;
+    const terapeuticoSelect = form.querySelector('select[name="efectuo_terapeutica"]').value;
+    const biopsia = form.querySelector('select[name="efectuo_biopsia"]').value;
     // Si el estudio es VCC, eliminar los campos específicos
     if (tipoEstudio === 'VCC') {
         formData.delete('estomago');
@@ -501,11 +514,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if(tipoEstudio === 'VEDA') {
         formData.delete('informe');
     }
-    if(terapeuticoSelect === 'NO'){
-        formData.delete('cual');
+    if(terapeuticoSelect === '0'){
+        formData.delete('tipo_terapeutica');
     }
-    if(biopsia === 'NO' ){
-        formData.delete('frascos');
+    if(biopsia === '0' ){
+        formData.delete('fracos_biopsia');
     }
 
     const btnEnviar = document.getElementById('btnEnviar');
@@ -545,7 +558,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
     const coberturaSelect = document.getElementById('cobertura');
-    const afiliadoInput = document.getElementById('afiliado');
+    const afiliadoInput = document.getElementById('numero_afiliado');
 
     // Aquí podrías continuar con el resto de tu lógica para cargar opciones
     // Ejemplo: cargarCoberturas();
@@ -553,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.addEventListener('DOMContentLoaded', function () {
     const coberturaSelect = document.getElementById('cobertura');
-    const afiliadoInput = document.getElementById('afiliado');
+    const afiliadoInput = document.getElementById('numero_afiliado');
 
     function verificarCobertura() {
         const coberturaTexto = coberturaSelect.options[coberturaSelect.selectedIndex]?.text?.trim().toUpperCase();
@@ -617,34 +630,13 @@ document.addEventListener('DOMContentLoaded', function () {
         validarFormulario(); // Validar al cargar la página
     });
    // Escuchar el cambio en el select de tipo de estudio
-   document.querySelector('select[name="tipo_informe"]').addEventListener('change', function() {
-        var tipoEstudio = this.value; // Obtenemos el valor seleccionado
-
-        // Verificamos si es VIDEOESOFAGASTRODUODENOSCOPIA o VIDEOCOLONOSCOPIA
-        var vedaInputs = document.getElementById('vedaInputs');
-        if (tipoEstudio === 'VEDA') {
-            vedaInputs.style.display = 'block'; // Mostrar los inputs
-            
-        } else {
-           
-            vedaInputs.style.display = 'none'; // Ocultar los inputs
-        }
-    });
-
+  
     // Inicializar el estado del formulario dependiendo del tipo de estudio ya seleccionado (si ya está predefinido)
-    window.addEventListener('DOMContentLoaded', function() {
-        var tipoEstudio = document.querySelector('select[name="tipo_informe"]').value;
-        if (tipoEstudio === 'VEDA') {
-            document.getElementById('vedaInputs').style.display = 'block';
-        } else {
-            document.getElementById('vedaInputs').style.display = 'none';
-        }
-    });
+    
 
 
 
-
-    document.getElementById('fecha_nacimiento').addEventListener('change', function() {
+    document.getElementById('fecha_nacimiento_paciente').addEventListener('change', function() {
         var fechaNacimiento = new Date(this.value);
         var hoy = new Date();
         var edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
@@ -752,11 +744,11 @@ function mostrarAlerta(mensaje, tipo) {
     };
 }
 document.addEventListener('DOMContentLoaded', function () {
-    const selectTerapeutico = document.querySelector('select[name="terapeutico"]');
-    const inputCual = document.querySelector('input[name="cual"]');
+    const selectTerapeutico = document.querySelector('select[name="efectuo_terapeutica"]');
+    const inputCual = document.querySelector('input[name="tipo_terapeutica"]');
 
     function actualizarCampoCual() {
-        if (selectTerapeutico.value === 'SI') {
+        if (selectTerapeutico.value === '1') {
             inputCual.parentElement.style.display = 'block';
         } else {
             inputCual.parentElement.style.display = 'none';
@@ -774,12 +766,12 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener("DOMContentLoaded", function () {
   
     // ------- Mostrar/Ocultar "Cantidad de frascos" según biopsia -------
-    const biopsiaSelect = document.querySelector('select[name="biopsia"]');
-    const inputFrascos = document.querySelector('input[name="frascos"]');
+    const biopsiaSelect = document.querySelector('select[name="efectuo_biopsia"]');
+    const inputFrascos = document.querySelector('input[name="fracos_biopsia"]');
     const labelFrascos = inputFrascos.closest('div'); // para ocultar el div completo
 
     function actualizarVisibilidadFrascos() {
-        if (biopsiaSelect.value === "SI") {
+        if (biopsiaSelect.value === "1") {
             labelFrascos.style.display = "block";
         } else {
             labelFrascos.style.display = "none";
@@ -829,39 +821,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // AGREGA ESTO NOMAS 
-document.addEventListener('DOMContentLoaded', function () {
-    const tipoEstudioSelect = document.querySelector('select[name="tipo_informe"]');
-    const inputInforme = document.getElementById("inputinforme");
-    const vedaInputs = document.getElementById('vedaInputs');
 
-    // Mostrar/ocultar campo informe
-    function actualizarVisibilidadInforme() {
-        const valor = tipoEstudioSelect.value;
-        if (valor === "VCC") {
-            inputInforme.style.display = "block";
-            vedaInputs.style.display = "none";
-        } else if (valor === "VEDA") {
-            inputInforme.style.display = "none";
-            vedaInputs.style.display = "block";
-        } else {
-            inputInforme.style.display = "none";
-            vedaInputs.style.display = "none";
-        }
-    }
-
-    // Restaurar valor si estaba en localStorage
-    const tipoGuardado = localStorage.getItem('tipo_informe');
-    if (tipoGuardado) {
-        tipoEstudioSelect.value = tipoGuardado;
-    }
-
-    actualizarVisibilidadInforme();
-
-    tipoEstudioSelect.addEventListener('change', function () {
-        localStorage.setItem('tipo_informe', this.value);
-        actualizarVisibilidadInforme();
-    });
-});
  const sugerencias = [
         "Polipectomía/s",
         "Mucosectomía",
@@ -871,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
         "Argón láser"
     ];
 
-    const input = document.getElementById('cual');
+    const input = document.getElementById('tipo_terapeutica');
     const listContainer = document.getElementById('autocomplete-list');
     
     input.addEventListener('input', function() {
@@ -901,15 +861,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     document.addEventListener('DOMContentLoaded', function () {
-    const campoCual = document.getElementById('cual');
+    const campoCual = document.getElementById('tipo_terapeutica');
 
     // Guardar en localStorage cada vez que el campo cambia
     campoCual.addEventListener('input', function () {
-        localStorage.setItem('cual', campoCual.value.trim());
+        localStorage.setItem('tipo_terapeutica', campoCual.value.trim());
     });
 
     // Cargar valor guardado al inicio
-    const cualGuardado = localStorage.getItem('cual');
+    const cualGuardado = localStorage.getItem('tipo_terapeutica');
     if (cualGuardado) {
         campoCual.value = cualGuardado;
     }
@@ -917,7 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Al hacer clic en una opción de autocompletado
 document.getElementById('autocomplete-list').addEventListener('click', function (e) {
     if (e.target && e.target.matches('.autocomplete-item')) {
-        const inputCual = document.getElementById('cual');
+        const inputCual = document.getElementById('tipo_terapeutica');
         inputCual.value = e.target.textContent;
         inputCual.dispatchEvent(new Event('input')); // <- necesario para que se guarde
     }
@@ -971,7 +931,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    const inputMedico = document.getElementById("medico");
+    const inputMedico = document.getElementById("medico_envia_estudio");
     setupAutocomplete(inputMedico, listaMedicos, "autocomplete-medico-list");
 });
 </script>

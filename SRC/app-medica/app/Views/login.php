@@ -74,6 +74,12 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
+            
+    margin: 0 auto; 
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    gap: 8px;
         }
 
         button:hover {
@@ -200,6 +206,49 @@
     .btn-cancel:hover {
         background-color: #999;
     }
+    .spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3); /* Color de fondo del spinner */
+    border-radius: 50%;
+    border-top: 4px solid #fff; /* Color principal del spinner */
+    width: 20px;
+    height: 20px;
+    -webkit-animation: spin 1s linear infinite; /* Animación para navegadores basados en Webkit */
+    animation: spin 1s linear infinite;
+    display: inline-block; /* Permite que el spinner se muestre en línea */
+    vertical-align: middle; /* Alineación vertical con el texto si hay */
+    margin-left: 8px; /* Espacio a la izquierda del spinner si hay texto */
+    box-sizing: border-box;
+}
+
+/* Animación de giro del spinner */
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Clase de utilidad para ocultar/mostrar elementos */
+.hidden {
+    display: none !important;
+}
+
+/* Estilos para el botón cuando el spinner está activo */
+#submitBtn {
+    display: flex; /* Usamos flexbox para centrar y alinear los elementos internos */
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center; /* Centra verticalmente */
+    gap: 5px; /* Espacio entre el texto y el spinner */
+}
+
+/* Opcional: mejora visual para el botón deshabilitado */
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.8; /* Ligeramente más transparente cuando está deshabilitado */
+}
     </style>
 </head>
 
@@ -221,7 +270,10 @@
     <span class="material-icons toggle-password" onclick="togglePassword()">visibility</span>
             </div>
 
-            <button type="submit" id="submitBtn" disabled>Ingresar</button>
+            <button type="submit" id="submitBtn" disabled>
+            <span id="buttonText">Ingresar</span>
+            <span id="spinner" class="spinner hidden"></span>
+            </button>
 
             <div style="margin-top: 27px;">
                 <a href="#" onclick="event.preventDefault(); enviarRecuperacion()" style="color: #009fdf; font-size: 17px; text-decoration: none;">
@@ -289,7 +341,21 @@ function confirmarRecuperacion() {
     const submitBtn = document.getElementById('submitBtn');
     const usuario = document.getElementById("usuario");
     const password = document.getElementById("password");
+    const buttonText = document.getElementById('buttonText');
+    const spinner = document.getElementById('spinner');    
+    function showLoadingState() {
+        buttonText.classList.add('hidden');    // Oculta el texto "Ingresar"
+        spinner.classList.remove('hidden'); // Muestra el spinner
+        submitBtn.disabled = true;          // Deshabilita el botón para evitar múltiples envíos
+        submitBtn.style.cursor = 'wait';    // Cambia el cursor a "espera"
+    }
 
+    function hideLoadingState() {
+        buttonText.classList.remove('hidden'); // Muestra el texto "Ingresar"
+        spinner.classList.add('hidden');    // Oculta el spinner
+        submitBtn.style.cursor = 'pointer'; // Restaura el cursor
+        validarCampos(); // Vuelve a habilitar el botón si los campos son válidos (o lo mantiene deshabilitado si no lo son)
+    }
     document.getElementById("loginForm").addEventListener("submit", function(event) {
         event.preventDefault();
 
@@ -321,18 +387,20 @@ function confirmarRecuperacion() {
         }
             } else {
                 mostrarAlerta('Usuario o Contraseña incorrectos', 'error');
+                hideLoadingState(); 
             }
         })
         .catch(error => {
             console.error("Error en la solicitud:", error);
             mostrarAlerta('Error en la conexión con el servidor', 'error');
+            hideLoadingState(); 
         });
     });
 
     function validarCampos() {
         const usuarioVal = usuario.value.trim();
         const passwordVal = password.value.trim();
-        submitBtn.disabled = usuarioVal === '' || passwordVal === '';
+        submitBtn.disabled = usuarioVal === '' || passwordVal === '' || !spinner.classList.contains('hidden');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
