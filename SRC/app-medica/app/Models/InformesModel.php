@@ -127,7 +127,8 @@ class InformesModel extends Model
             ->get()
             ->getRowArray();
     }
-    public function getInformesByNombreCobertura($nombreCobertura)
+
+     public function getInformesByNombreCobertura($nombreCobertura)
     {
         // Construye la consulta:
         // 1. Selecciona todos los campos de 'informes' y el 'nombre_cobertura' de la tabla 'coberturas'.

@@ -660,11 +660,10 @@ class Informes extends BaseController
             $mail->CharSet    = 'UTF-8';
 
             // Remitente y destinatario
-     
-           /* $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
-             $mail->addCC('dianajudit@hotmail.com', "Se envió a: $destinatario");
+            $mail->setFrom('estudio@dianaestrin.com', 'Estudio Diana Estrin');
+            $mail->addCC('dianajudit@hotmail.com', "Se envió a: $destinatario");
             $mail->addCC('adege2000@yahoo.com.ar', "Se envió a: $destinatario");
-            $mail->addCC('quirofanosi@santaisabel.com.ar', "Se envió a: $destinatario"); */
+            $mail->addCC('quirofanosi@santaisabel.com.ar', "Se envió a: $destinatario");
             $mail->addAddress($destinatario); // Este es el destinatario principal dinámico
 
             // Contenido del correo
@@ -1438,6 +1437,7 @@ class Informes extends BaseController
             ])->setStatusCode(500);
         }
     }
+  
     public function getInformesByCobertura($nombreCobertura) // El parámetro ya lo renombraste a $cobertura en la ruta, así que úsalo aquí
     {
         // Si quieres que el filtro sea insensible a mayúsculas/minúsculas
@@ -1468,6 +1468,7 @@ class Informes extends BaseController
             'data' => $informes
         ]);
     }
+
     public function downloadPdfsByDateRangeAndCoverage()
     {
         try {
