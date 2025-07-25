@@ -50,3 +50,10 @@ $routes->post('/reenviar-informe/(:num)', 'Informes::reenviarInformePorId/$1');
 $routes->post('/solicitar-cambio-password', 'Usuarios::solicitarCambioPassword');
 $routes->post('/verificar-codigo-cambio', 'Usuarios::verificarYActualizarPassword');
 $routes->get('/informes-paginado', 'Informes::getInformesPaginado');
+
+
+/*preparaciones*/
+
+$routes->get('/preparacion/(:num)', 'Preparaciones::getByIdPreparaciones/$1');    
+$routes->get('/preparaciones/tipo/(:segment)', 'Preparaciones::getByTipoPreparacion/$1');
+$routes->put('/preparacion/(:num)', 'Preparaciones::updateTexto/$1');

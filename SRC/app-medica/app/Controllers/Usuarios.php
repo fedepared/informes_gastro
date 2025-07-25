@@ -312,7 +312,7 @@ class Usuarios extends BaseController
         ]);
         // Fin logica token        
 
-        $sessionExpiration =  config('Session')->expiration;
+        $sessionExpiration = session()->getExpiration();
         session()->set('expiracion', time() + $sessionExpiration);
         // Si las credenciales son correctas, devolver una respuesta de éxito
         return $this->response->setJSON([
